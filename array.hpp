@@ -2,16 +2,21 @@
 
 
 #include "api.hpp"
+#include "error.hpp"
+#include "expected.hpp"
+#include "line_position_counter.hpp"
 #include "utils.hpp"
 
+#include <iostream>
 #include <optional>
-#include <stdexcept>
 #include <string_view>
-#include <ranges>
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonArray::TJsonArray(std::string_view data) : Data(data) {}
+    constexpr TJsonArray::TJsonArray(
+        std::string_view data,
+        TLinePositionCounter lpCounter
+    ) : Data(data), LpCounter(lpCounter) {}
 
     constexpr auto TJsonArray::GetData() const -> std::string_view {
         return Data;
@@ -19,38 +24,77 @@ namespace NCompileTimeJsonParser {
 
     class TJsonArray::Iterator {
     private:
-        std::string_view ArrayData;
+        std::string_view ArrayData; 
+        TLinePositionCounter LpCounter;
         std::string_view::size_type CurElemStartPos = std::string_view::npos;
         std::string_view::size_type CurElemEndPos = std::string_view::npos;
+        std::optional<NError::TError> Error;
     private: 
         friend class TJsonArray;
-        friend class TMonadicOptional<TJsonArray>;
+        friend class TExpected<TJsonArray>;
+        constexpr auto SetError(NError::TError&& err) -> void {
+            // Make this iterator equal to TJsonArray::end()
+            CurElemStartPos = std::string_view::npos;
+            CurElemEndPos = std::string_view::npos;
+            // Move `err` to `Error` field
+            Error.emplace(std::move(err));
+        }
         constexpr Iterator(
-            std::string_view arrayData,
+            std::string_view arrayData, 
+            TLinePositionCounter lpCounter,
             std::string_view::size_type startPos = std::string_view::npos
         )
             : ArrayData(arrayData)
+            , LpCounter(lpCounter)
             , CurElemStartPos(startPos)
-            , CurElemEndPos(NUtils::FindCurElementEndPos(ArrayData, startPos))
-        {
+            , CurElemEndPos(0)
+        { 
+            auto endPosOrErr = CurElemStartPos == std::string_view::npos 
+                ? std::string_view::npos
+                : NUtils::FindCurElementEndPos(ArrayData, lpCounter, CurElemStartPos);
+
+            if (endPosOrErr.HasError())
+                SetError(std::move(endPosOrErr.Error()));
+            else
+                CurElemEndPos = endPosOrErr.Value();
         }
     public:
         using difference_type = int;
-        using value_type = TJsonValue;
+        using value_type = TExpected<TJsonValue>;
     public:
         constexpr Iterator() = default;
         constexpr auto operator*() const -> value_type {
-            if (CurElemStartPos == std::string_view::npos) throw std::runtime_error{
-                "operator* called on end() json array iterator"
+            if (Error) return Error.value();
+            return TJsonValue{
+                ArrayData.substr(CurElemStartPos, CurElemEndPos - CurElemStartPos),
+                LpCounter
             };
-            return ArrayData.substr(CurElemStartPos, CurElemEndPos - CurElemStartPos);
         } 
         constexpr auto operator++() -> Iterator& {
-            if (CurElemStartPos == std::string_view::npos) throw std::runtime_error{
+            if (Error) return *this;
+            if (CurElemStartPos == std::string_view::npos) throw NError::IteratorIncrementError{
                 "operator++ called on end() json array iterator"
             };
-            CurElemStartPos = NUtils::FindNextElementStartPos(ArrayData, CurElemEndPos);
-            CurElemEndPos = NUtils::FindCurElementEndPos(ArrayData, CurElemStartPos);
+            {
+                auto posOrErr = NUtils::FindNextElementStartPos(ArrayData, LpCounter, CurElemEndPos);
+                if (posOrErr.HasError()) {
+                    SetError(std::move(posOrErr.Error()));
+                    return *this;
+                }
+                CurElemStartPos = posOrErr.Value();
+                if (CurElemStartPos == std::string_view::npos) {
+                    CurElemEndPos = std::string_view::npos;
+                    return *this;
+                }
+            }
+            {
+                auto posOrErr = NUtils::FindCurElementEndPos(ArrayData, LpCounter, CurElemStartPos);
+                if (posOrErr.HasError()) {
+                    SetError(std::move(posOrErr.Error()));
+                    return *this;
+                }
+                CurElemEndPos = posOrErr.Value();
+            }
             return *this;
         }
         constexpr auto operator++(int) -> Iterator {
@@ -58,37 +102,53 @@ namespace NCompileTimeJsonParser {
             ++(*this);
             return copy;
         }
-        constexpr auto operator==(const Iterator&) const -> bool = default;
+        constexpr auto operator==(const Iterator& other) const -> bool {
+            return ArrayData == other.ArrayData
+                && CurElemStartPos == other.CurElemStartPos
+                && CurElemEndPos == other.CurElemEndPos;
+        }
     };
 
     constexpr auto TJsonArray::begin() const -> Iterator {
-        return Iterator(Data, NUtils::FindFirstOf(
+        auto lpCounterCopy = LpCounter;
+        auto startPos = NUtils::FindFirstOf(
             Data,
+            lpCounterCopy,
             [](char ch) { return !NUtils::IsSpace(ch); },
             0
-        ));
+        );
+        return {Data, std::move(lpCounterCopy), startPos};
     }
 
     constexpr auto TJsonArray::end() const -> Iterator {
-        return Iterator(Data, std::string_view::npos);
+        return {
+            Data,
+            LpCounter,
+            std::string_view::npos
+        };
     }
 
-    constexpr auto TJsonArray::At(size_t idx) const -> TMonadicOptional<TJsonValue> {
+    constexpr auto TJsonArray::At(size_t idx) const -> TExpected<TJsonValue> {
         auto it = begin(), finish = end();
         auto counter = size_t{0};
         for (; it != finish && counter < idx; ++it, ++counter);
-        return it == finish ? TMonadicOptional<TJsonValue>{std::nullopt} : *it;
+        if (it.Error) return it.Error.value();
+        return it == finish
+            ? Error(LpCounter, NError::ErrorCode::ArrayIndexOutOfRange)
+            : *it;
     }
 
-    constexpr auto TMonadicOptional<TJsonArray>::begin() const -> TJsonArray::Iterator {
-        return has_value() ? value().begin() : TJsonArray::Iterator{};
+    constexpr auto TExpected<TJsonArray>::begin() const -> TJsonArray::Iterator {
+        // TODO: add error forwarding
+        return HasValue() ? Value().begin() : TJsonArray::Iterator{};
     }
 
-    constexpr auto TMonadicOptional<TJsonArray>::end() const -> TJsonArray::Iterator {
-        return has_value() ? value().end() : TJsonArray::Iterator{};
+    constexpr auto TExpected<TJsonArray>::end() const -> TJsonArray::Iterator {
+        // TODO: add error forwarding
+        return HasValue() ? Value().end() : TJsonArray::Iterator{};
     } 
 
-    constexpr auto TMonadicOptional<TJsonArray>::At(size_t idx) const -> TMonadicOptional<TJsonValue> {
-        return has_value() ? value().At(idx) : std::nullopt;
+    constexpr auto TExpected<TJsonArray>::At(size_t idx) const -> TExpected<TJsonValue> {
+        return HasValue() ? Value().At(idx) : Error();
     }
 }

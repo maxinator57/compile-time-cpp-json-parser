@@ -21,13 +21,13 @@ namespace NCompileTimeJsonParser {
     class TJsonMapping::Iterator {
     private:
         std::string_view MappingData;
-        std::string_view::size_type CurKeyStartPos   = std::string_view::npos;
-        std::string_view::size_type CurKeyEndPos     = std::string_view::npos;
+        std::string_view::size_type CurKeyStartPos = std::string_view::npos;
+        std::string_view::size_type CurKeyEndPos = std::string_view::npos;
         std::string_view::size_type CurValueStartPos = std::string_view::npos;
-        std::string_view::size_type CurValueEndPos   = std::string_view::npos;
+        std::string_view::size_type CurValueEndPos = std::string_view::npos;
     private: 
         friend class TJsonMapping;
-        friend class TMonadicOptional<TJsonMapping>;
+        friend class TExpected<TJsonMapping>;
         constexpr Iterator(
             std::string_view mappingData,
             std::string_view::size_type startPos = std::string_view::npos
@@ -45,7 +45,7 @@ namespace NCompileTimeJsonParser {
     public:
         constexpr Iterator() = default;
         constexpr auto operator*() const -> value_type {
-            if (CurKeyStartPos == std::string_view::npos) throw NError::TDereferencingError{
+            if (CurKeyStartPos == std::string_view::npos) throw NError::IteratorDereferenceError{
                 "operator* called on end() json mapping iterator of mapping ("
             };
             const auto keyData = MappingData.substr(
@@ -53,7 +53,7 @@ namespace NCompileTimeJsonParser {
                 CurKeyEndPos - CurKeyStartPos
             );
             const auto key = TJsonValue{keyData}.AsString();
-            if (!key.has_value()) throw NError::TParsingError{(
+            if (!key.has_value()) throw NError::ParseError{(
                 std::stringstream{}
                 << "Error when parsing json mapping: encountered a non-string key ("
                 << keyData << ")"
@@ -64,15 +64,16 @@ namespace NCompileTimeJsonParser {
             };
         } 
         constexpr auto operator++() -> Iterator& {
-            if (CurKeyStartPos == std::string_view::npos) {
-                throw std::runtime_error{"operator++ called on end() json mapping iterator"};
-            }
+            if (CurKeyStartPos == std::string_view::npos) throw NError::IteratorIncrementError{
+                "operator++ called on end() json mapping iterator"
+            };
+
             CurKeyStartPos = NUtils::FindNextElementStartPos(MappingData, CurValueEndPos);
             CurKeyEndPos = NUtils::FindCurElementEndPos(MappingData, CurKeyStartPos, ':'); 
             CurValueStartPos = NUtils::FindNextElementStartPos(MappingData, CurKeyStartPos, ':');
             if (CurKeyStartPos != std::string_view::npos
                 && CurValueStartPos == std::string_view::npos
-            ) throw NError::TParsingError{(
+            ) throw NError::ParseError{(
                 std::stringstream{}
                 << "Error when parsing json mapping: encountered a key without value ("
                 << MappingData.substr(CurKeyStartPos, CurKeyEndPos - CurKeyStartPos) << ")"

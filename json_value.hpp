@@ -3,7 +3,10 @@
 
 #include "api.hpp"
 #include "array.hpp"
-#include "mapping.hpp"
+#include "error.hpp"
+#include "expected.hpp"
+#include "line_position_counter.hpp"
+// #include "mapping.hpp"
 
 #include <concepts>
 #include <optional>
@@ -11,56 +14,60 @@
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonValue::TJsonValue(std::string_view data) : Data(data) {}
+    constexpr TJsonValue::TJsonValue(
+        std::string_view data,
+        TLinePositionCounter lpCounter
+    ) : Data(data), LpCounter(lpCounter) {}
 
     constexpr auto TJsonValue::GetData() const -> std::string_view {
         return Data;
     }
+    constexpr auto TJsonValue::GetLpCounter() const -> TLinePositionCounter {
+        return LpCounter;
+    }
 
-    constexpr auto TJsonValue::AsInt64() const -> std::optional<int64_t> {
-        if (Data.empty()) return std::nullopt;
-
+    constexpr auto TJsonValue::AsInt() const -> TExpected<int64_t> {
+        if (Data.empty()) return Error(
+            LpCounter,
+            NError::ErrorCode::MissingValueError
+        );
         constexpr auto isDigit = [](char ch) {
             return '0' <= ch && ch <= '9';
         };
-
-        auto isNegative = (Data[0] == '-');
+        const auto isNegative = (Data[0] == '-');
         auto result = int64_t{0};
         for (auto ch : Data.substr(isNegative ? 1 : 0)) {
-            if (!isDigit(ch)) return std::nullopt;
+            if (!isDigit(ch)) return Error(LpCounter, NError::ErrorCode::TypeError);
             result = result * 10 + ch - '0';
         }
         return isNegative ? -result : result;
     }
 
-
-    constexpr auto TJsonValue::AsDouble() const -> std::optional<double> {
+    constexpr auto TJsonValue::AsDouble() const -> TExpected<double> {
         const auto dotPosition = Data.find_first_of('.');
         if (dotPosition == std::string_view::npos || dotPosition == Data.size() - 1) {
-            auto intResult = TJsonValue{Data.substr(0, dotPosition)}.AsInt64();
-            if (intResult.has_value()) return static_cast<double>(*intResult);
-            return std::nullopt;
+            auto intOrErr = TJsonValue{Data.substr(0, dotPosition)}.AsInt();
+            if (intOrErr.HasError()) return NError::TError{
+                .LineNumber = LpCounter.LineNumber,
+                .Position = LpCounter.Position,
+                .Code = NError::ErrorCode::TypeError,
+            };
+            return static_cast<double>(intOrErr.Value());
         }
 
-        const auto [intPart, intPartOk] = [&]() -> std::pair<int64_t, bool> {
-            auto maybeIntPart = TJsonValue{Data.substr(0, dotPosition)}.AsInt64();
-            if (maybeIntPart.has_value()) return {*maybeIntPart, true};
-            return {0, false};
-        }(); if (!intPartOk) return std::nullopt;
+        auto intPartOrErr = TJsonValue{Data.substr(0, dotPosition)}.AsInt();
+        if (intPartOrErr.HasError()) return std::move(intPartOrErr.Error());
+        const auto intPart = intPartOrErr.Value();
 
         const auto fracPartLen = std::min(
             Data.size() - dotPosition - 1,
             std::string_view::size_type{10}
         );
-
-        const auto [fracPart, fracPartOk] = [&]() -> std::pair<int64_t, bool> {
-            auto maybeFracPart = TJsonValue{Data.substr(
-                dotPosition + 1,
-                fracPartLen
-            )}.AsInt64();
-            if (maybeFracPart.has_value()) return {*maybeFracPart, true};
-            return {0, false};
-        }(); if (!fracPartOk || fracPart < 0) return std::nullopt;
+        auto fracPartOrErr = TJsonValue{
+            Data.substr(dotPosition + 1, fracPartLen)
+        }.AsInt();
+        if (fracPartOrErr.HasError()) return std::move(fracPartOrErr.Error());
+        const auto fracPart = fracPartOrErr.Value();
 
         constexpr auto pow = [](auto base, std::unsigned_integral auto exp) {
             auto result = static_cast<decltype(base)>(1);
@@ -76,46 +83,94 @@ namespace NCompileTimeJsonParser {
         return static_cast<double>(intPart) + (intPart < 0 ? -fracPartDouble : fracPartDouble);
     }
 
-
-    constexpr auto TJsonValue::AsString() const -> std::optional<std::string_view> {
-        if (Data.size() < 2 || Data[0] != '"' || Data.back() != '"') {
-            return std::nullopt;
-        }
+    constexpr auto TJsonValue::AsString() const -> TExpected<String> {
+        if (Data.empty()) return Error(
+            LpCounter,
+            NError::ErrorCode::MissingValueError
+        );
+        if (Data.size() == 1) return Error(
+            LpCounter,
+            Data[0] == '"'
+                ? NError::ErrorCode::SyntaxError
+                : NError::ErrorCode::TypeError
+        );
+        if (Data[0] == '"' && Data.back() != '"') return Error(
+            LpCounter.Copy().Process(Data),
+            NError::ErrorCode::SyntaxError
+        );
+        if (Data[0] != '"' && Data.back() == '"') return Error(
+            LpCounter,
+            NError::ErrorCode::SyntaxError
+        );
+        if (Data[0] != '"' && Data.back() != '"') return Error(
+            LpCounter,
+            NError::ErrorCode::TypeError
+        ); 
         return Data.substr(1, Data.size() - 2);
     }
 
-
-    constexpr auto TJsonValue::AsArray() const -> TMonadicOptional<TJsonArray> {
-        if (Data.empty() || Data[0] != '[' || Data.back() != ']') {
-            return std::nullopt;
-        }
-        return TJsonArray(Data.substr(1, Data.size() - 2));
+    constexpr auto TJsonValue::AsArray() const -> TExpected<TJsonArray> {
+        if (Data.empty()) return Error(
+            LpCounter,
+            NError::ErrorCode::MissingValueError
+        );
+        if (Data[0] == '[' && Data.back() != ']') return Error(
+            LpCounter.Copy().Process(Data),
+            NError::ErrorCode::SyntaxError
+        );
+        if (Data[0] != '[' && Data.back() == ']') return Error(
+            LpCounter,
+            NError::ErrorCode::SyntaxError
+        );
+        if (Data[0] != '[' && Data.back() != ']') return Error(
+            LpCounter,
+            NError::ErrorCode::TypeError
+        );
+        return TJsonArray{
+            Data.substr(1, Data.size() - 2),
+            LpCounter.Copy().Process(Data[0])
+        };
     }
 
-    constexpr auto TJsonValue::AsMapping() const -> TMonadicOptional<TJsonMapping> {
-        if (Data.empty() || Data[0] != '{' || Data.back() != '}') {
-            return std::nullopt;
-        }
-        return TJsonMapping(Data.substr(1, Data.size() - 2));
+    constexpr auto TJsonValue::AsMapping() const -> TExpected<TJsonMapping> {
+        if (Data.empty()) return Error(
+            LpCounter,
+            NError::ErrorCode::MissingValueError
+        );
+        if (Data[0] == '{' && Data.back() != '}') return Error(
+            LpCounter.Copy().Process(Data),
+            NError::ErrorCode::SyntaxError
+        );
+        if (Data[0] != '{' && Data.back() == '}') return Error(
+            LpCounter,
+            NError::ErrorCode::SyntaxError
+        );
+        if (Data[0] != '{' && Data.back() != '}') return Error(
+            LpCounter,
+            NError::ErrorCode::TypeError
+        );
+        return TJsonMapping{
+            Data.substr(1, Data.size() - 2),
+            LpCounter.Copy().Process(Data[0])
+        };
     }
 
-    constexpr auto TMonadicOptional<TJsonValue>::AsInt64() const -> std::optional<int64_t> {
-        return has_value() ? value().AsInt64() : std::nullopt;
-    }
+    // The following boilerplate is needed for syntactically nice
+    // monadic operations support:
 
-    constexpr auto TMonadicOptional<TJsonValue>::AsDouble() const -> std::optional<double> {
-        return has_value() ? value().AsDouble() : std::nullopt;
+    constexpr auto TExpected<TJsonValue>::AsInt() const -> TExpected<Int> {
+        return HasValue() ? Value().AsInt() : Error();
     }
-
-    constexpr auto TMonadicOptional<TJsonValue>::AsString() const -> std::optional<std::string_view> {
-        return has_value() ? value().AsString() : std::nullopt;
+    constexpr auto TExpected<TJsonValue>::AsDouble() const -> TExpected<double> {
+        return HasValue() ? Value().AsDouble() : Error();
     }
-
-    constexpr auto TMonadicOptional<TJsonValue>::AsArray() const -> TMonadicOptional<TJsonArray> {
-        return has_value() ? value().AsArray() : std::nullopt;
+    constexpr auto TExpected<TJsonValue>::AsString() const -> TExpected<String> {
+        return HasValue() ? Value().AsString() : Error();
     }
-
-    constexpr auto TMonadicOptional<TJsonValue>::AsMapping() const -> TMonadicOptional<TJsonMapping> {
-        return has_value() ? value().AsMapping() : std::nullopt;
+    constexpr auto TExpected<TJsonValue>::AsArray() const -> TExpected<TJsonArray> {
+        return HasValue() ? Value().AsArray() : Error();
+    }
+    constexpr auto TExpected<TJsonValue>::AsMapping() const -> TExpected<TJsonMapping> {
+        return HasValue() ? Value().AsMapping() : Error();
     }
 } // namespace NCompileTimeJsonParser
