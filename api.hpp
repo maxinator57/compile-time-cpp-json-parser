@@ -27,7 +27,7 @@ namespace NCompileTimeJsonParser {
         struct Iterator;
         constexpr auto begin() const -> Iterator;
         constexpr auto end() const -> Iterator;
-    }; 
+    };
 
     class TJsonMapping {
     private:
@@ -37,6 +37,7 @@ namespace NCompileTimeJsonParser {
         friend class TJsonValue;
     public:
         constexpr auto GetData() const -> std::string_view;
+        constexpr auto GetLpCounter() const -> TLinePositionCounter;
         constexpr auto At(std::string_view key) const -> TExpected<TJsonValue>;
         struct Iterator;
         constexpr auto begin() const -> Iterator;

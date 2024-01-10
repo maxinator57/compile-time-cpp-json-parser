@@ -3,6 +3,9 @@
 
 #include "api.hpp"
 #include "error.hpp"
+#include "expected.hpp"
+#include "iterator.hpp"
+#include "line_position_counter.hpp"
 #include "utils.hpp"
 
 #include <optional>
@@ -12,112 +15,127 @@
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonMapping::TJsonMapping(std::string_view data) : Data(data) {}
+    constexpr TJsonMapping::TJsonMapping(
+        std::string_view data,
+        TLinePositionCounter lpCounter
+    ) : Data(data), LpCounter(lpCounter) {}
 
     constexpr auto TJsonMapping::GetData() const -> std::string_view {
         return Data;
     }
 
-    class TJsonMapping::Iterator {
+    constexpr auto TJsonMapping::GetLpCounter() const -> TLinePositionCounter {
+        return LpCounter;
+    }
+
+    class TJsonMapping::Iterator : public TIteratorMixin<TJsonMapping::Iterator> {
+        using TBase = TIteratorMixin<TJsonMapping::Iterator>;
     private:
-        std::string_view MappingData;
-        std::string_view::size_type CurKeyStartPos = std::string_view::npos;
-        std::string_view::size_type CurKeyEndPos = std::string_view::npos;
-        std::string_view::size_type CurValueStartPos = std::string_view::npos;
-        std::string_view::size_type CurValueEndPos = std::string_view::npos;
-    private: 
+        // MainIndex == CurKeyStartPos
+        std::string_view::size_type CurKeyEndPos = 0;
+        std::string_view::size_type CurValueStartPos = 0;
+        std::string_view::size_type CurValueEndPos = 0;
+
         friend class TJsonMapping;
-        friend class TExpected<TJsonMapping>;
-        constexpr Iterator(
-            std::string_view mappingData,
-            std::string_view::size_type startPos = std::string_view::npos
-        )
-            : MappingData(mappingData)
-            , CurKeyStartPos(startPos)
-            , CurKeyEndPos(NUtils::FindCurElementEndPos(MappingData, CurKeyStartPos, ':'))
-            , CurValueStartPos(NUtils::FindNextElementStartPos(MappingData, CurKeyStartPos, ':'))
-            , CurValueEndPos(NUtils::FindCurElementEndPos(MappingData, CurValueStartPos))
-        {
+        friend class TIteratorMixin<TJsonMapping::Iterator>;
+    private:
+        constexpr auto StepForwardRemainingImpl() -> void {
+            {
+                auto posOrErr = NUtils::FindCurElementEndPos(Data, LpCounter, MainIndex, ':');
+                if (posOrErr.HasError()) {
+                    SetError(std::move(posOrErr.Error()));
+                    return;
+                }
+                CurKeyEndPos = posOrErr.Value();
+                if (CurKeyEndPos == std::string_view::npos) {
+                    SetError(Error(LpCounter, NError::ErrorCode::MissingValueError));
+                    return;
+                }
+            }
+            {
+                auto posOrErr = NUtils::FindNextElementStartPos(Data, LpCounter, CurKeyEndPos, ':');
+                if (posOrErr.HasError()) {
+                    SetError(std::move(posOrErr.Error()));
+                    return;
+                }
+                CurValueStartPos = posOrErr.Value();
+                if (CurValueStartPos == std::string_view::npos) {
+                    SetError(Error(LpCounter, NError::ErrorCode::MissingValueError));
+                    return;
+                }
+            }
+            {
+                auto posOrErr = NUtils::FindCurElementEndPos(Data, LpCounter, CurValueStartPos);
+                if (posOrErr.HasError()) {
+                    SetError(std::move(posOrErr.Error()));
+                    return;
+                }
+                CurValueEndPos = posOrErr.Value();
+            }
         }
+        constexpr auto GetStartPos() const -> std::string_view::size_type {
+            return CurValueEndPos;
+        }
+        constexpr Iterator(
+            std::string_view data,
+            TLinePositionCounter lpCounter,
+            std::string_view::size_type startPos
+        ) : TBase(data, lpCounter, startPos) { Init(); }
     public:
         using difference_type = int;
-        using value_type = std::pair<std::string_view, TJsonValue>;
+        struct value_type {
+            TExpected<String> Key;
+            TExpected<TJsonValue> Value;
+        };
     public:
-        constexpr Iterator() = default;
+        constexpr Iterator() : Iterator{{}, {}, std::string_view::npos} {};
         constexpr auto operator*() const -> value_type {
-            if (CurKeyStartPos == std::string_view::npos) throw NError::IteratorDereferenceError{
-                "operator* called on end() json mapping iterator of mapping ("
+            if (ErrorOpt) {
+                if (ErrorOpt->Code == NError::ErrorCode::MissingValueError) { 
+                    return {
+                        // TODO: calculate key position in text
+                        .Key = TJsonValue{Data.substr(MainIndex, CurKeyEndPos - MainIndex)}.AsString(),
+                        .Value = ErrorOpt.value()
+                    };
+                }
+                return {.Key = "", .Value = ErrorOpt.value()};
+            }
+            if (IsEnd()) return {
+                .Key = "",
+                .Value = Error(LpCounter, NError::ErrorCode::IteratorDereferenceError)
             };
-            const auto keyData = MappingData.substr(
-                CurKeyStartPos,
-                CurKeyEndPos - CurKeyStartPos
-            );
-            const auto key = TJsonValue{keyData}.AsString();
-            if (!key.has_value()) throw NError::ParseError{(
-                std::stringstream{}
-                << "Error when parsing json mapping: encountered a non-string key ("
-                << keyData << ")"
-            ).str()};
             return {
-                key.value(),
-                MappingData.substr(CurValueStartPos, CurValueEndPos - CurValueStartPos)
+                .Key = TJsonValue{Data.substr(MainIndex, CurKeyEndPos - MainIndex)}.AsString(),
+                .Value = TJsonValue{Data.substr(MainIndex, CurValueEndPos - CurValueStartPos)},
             };
         } 
-        constexpr auto operator++() -> Iterator& {
-            if (CurKeyStartPos == std::string_view::npos) throw NError::IteratorIncrementError{
-                "operator++ called on end() json mapping iterator"
-            };
-
-            CurKeyStartPos = NUtils::FindNextElementStartPos(MappingData, CurValueEndPos);
-            CurKeyEndPos = NUtils::FindCurElementEndPos(MappingData, CurKeyStartPos, ':'); 
-            CurValueStartPos = NUtils::FindNextElementStartPos(MappingData, CurKeyStartPos, ':');
-            if (CurKeyStartPos != std::string_view::npos
-                && CurValueStartPos == std::string_view::npos
-            ) throw NError::ParseError{(
-                std::stringstream{}
-                << "Error when parsing json mapping: encountered a key without value ("
-                << MappingData.substr(CurKeyStartPos, CurKeyEndPos - CurKeyStartPos) << ")"
-            ).str()};
-            CurValueEndPos = NUtils::FindCurElementEndPos(MappingData, CurValueStartPos); 
-            return *this;
-        }
-        constexpr auto operator++(int) -> Iterator {
-            auto copy = *this;
-            ++(*this);
-            return copy;
-        }
-        constexpr auto operator==(const Iterator&) const -> bool = default;
-    };
+    }; 
 
     constexpr auto TJsonMapping::begin() const -> Iterator {
-        return Iterator(Data, NUtils::FindFirstOf(
-            Data,
-            [](char ch) { return !NUtils::IsSpace(ch); },
-            0
-        ));
+        return Iterator::Begin(Data, LpCounter); 
     }
 
     constexpr auto TJsonMapping::end() const -> Iterator {
-        return Iterator(Data, std::string_view::npos);
+        return Iterator::End(Data, LpCounter); 
     }
 
-    constexpr auto TJsonMapping::At(std::string_view key) const -> TMonadicOptional<TJsonValue> {
+    constexpr auto TJsonMapping::At(std::string_view key) const -> TExpected<TJsonValue> {
         auto finish = end();
         for (auto [k, v] : *this) if (key == k) return v;
-        return std::nullopt;
+        return Error(LpCounter, NError::ErrorCode::MappingKeyNotFound);
     }
 
-    constexpr auto TMonadicOptional<TJsonMapping>::begin() const -> TJsonMapping::Iterator {
-        return has_value() ? value().begin() : TJsonMapping::Iterator{};
+    constexpr auto TExpected<TJsonMapping>::begin() const -> TJsonMapping::Iterator {
+        return HasValue() ? Value().begin() : TJsonMapping::Iterator{};
     }
 
-    constexpr auto TMonadicOptional<TJsonMapping>::end() const -> TJsonMapping::Iterator {
-        return has_value() ? value().end() : TJsonMapping::Iterator{};
+    constexpr auto TExpected<TJsonMapping>::end() const -> TJsonMapping::Iterator {
+        return HasValue() ? Value().end() : TJsonMapping::Iterator{};
     }
 
-    constexpr auto TMonadicOptional<TJsonMapping>::At(
+    constexpr auto TExpected<TJsonMapping>::At(
         std::string_view key
-    ) const -> TMonadicOptional<TJsonValue> {
-        return has_value() ? value().At(key) : std::nullopt;
+    ) const -> TExpected<TJsonValue> {
+        return HasValue() ? Value().At(key) : Error();
     }  
 } // namespace NCompileTimeJsonParser
