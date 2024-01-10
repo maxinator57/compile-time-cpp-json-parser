@@ -8,6 +8,7 @@
 #include "line_position_counter.hpp"
 #include "utils.hpp"
 
+#include <iostream>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -106,7 +107,7 @@ namespace NCompileTimeJsonParser {
             };
             return {
                 .Key = TJsonValue{Data.substr(MainIndex, CurKeyEndPos - MainIndex)}.AsString(),
-                .Value = TJsonValue{Data.substr(MainIndex, CurValueEndPos - CurValueStartPos)},
+                .Value = TJsonValue{Data.substr(CurValueStartPos, CurValueEndPos - CurValueStartPos)},
             };
         } 
     }; 
@@ -121,7 +122,9 @@ namespace NCompileTimeJsonParser {
 
     constexpr auto TJsonMapping::At(std::string_view key) const -> TExpected<TJsonValue> {
         auto finish = end();
-        for (auto [k, v] : *this) if (key == k) return v;
+        for (auto [k, v] : *this) {
+            if (k == key) return v;
+        }
         return Error(LpCounter, NError::ErrorCode::MappingKeyNotFound);
     }
 

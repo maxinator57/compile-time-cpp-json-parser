@@ -6,7 +6,7 @@
 #include "error.hpp"
 #include "expected.hpp"
 #include "line_position_counter.hpp"
-// #include "mapping.hpp"
+#include "mapping.hpp"
 
 #include <concepts>
 #include <optional>
@@ -161,7 +161,7 @@ namespace NCompileTimeJsonParser {
     constexpr auto TExpected<TJsonValue>::AsInt() const -> TExpected<Int> {
         return HasValue() ? Value().AsInt() : Error();
     }
-    constexpr auto TExpected<TJsonValue>::AsDouble() const -> TExpected<double> {
+    constexpr auto TExpected<TJsonValue>::AsDouble() const -> TExpected<Double> {
         return HasValue() ? Value().AsDouble() : Error();
     }
     constexpr auto TExpected<TJsonValue>::AsString() const -> TExpected<String> {
