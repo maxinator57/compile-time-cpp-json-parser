@@ -92,13 +92,11 @@ namespace NCompileTimeJsonParser {
         constexpr Iterator() : Iterator{{}, {}, std::string_view::npos} {};
         constexpr auto operator*() const -> value_type {
             if (ErrorOpt) {
-                if (ErrorOpt->Code == NError::ErrorCode::MissingValueError) { 
-                    return {
-                        // TODO: calculate key position in text
-                        .Key = TJsonValue{Data.substr(MainIndex, CurKeyEndPos - MainIndex)}.AsString(),
-                        .Value = ErrorOpt.value()
-                    };
-                }
+                if (ErrorOpt->Code == NError::ErrorCode::MissingValueError) return {
+                    // TODO: calculate key position in text
+                    .Key = TJsonValue{Data.substr(MainIndex, CurKeyEndPos - MainIndex)}.AsString(),
+                    .Value = ErrorOpt.value()
+                };
                 return {.Key = "", .Value = ErrorOpt.value()};
             }
             if (IsEnd()) return {

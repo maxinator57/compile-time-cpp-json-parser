@@ -1,13 +1,14 @@
 #pragma once
 
+#include "api.hpp"
 #include "line_position_counter.hpp"
 
-#include <stdexcept>
+#include <type_traits>
 
 
 namespace NCompileTimeJsonParser::NError {
     enum class ErrorCode : uint8_t {
-        SyntaxError,
+        SyntaxError = 1,
         TypeError, 
         MissingValueError,
         ArrayIndexOutOfRange,
@@ -20,7 +21,6 @@ namespace NCompileTimeJsonParser::NError {
         size_t Position = 0;
         ErrorCode Code; 
     };
-
     constexpr auto Error(TLinePositionCounter lpCounter, ErrorCode code) -> TError {
         return {
             .LineNumber = lpCounter.LineNumber,
@@ -29,7 +29,10 @@ namespace NCompileTimeJsonParser::NError {
         };
     }
 
-    struct IteratorIncrementError : std::runtime_error {
-        using std::runtime_error::runtime_error;
+    template <ErrorCode code, size_t lineNumber, size_t position>
+    struct Print {
+        static_assert(static_cast<int>(code) == 0);
     };
+    template <TError err>
+    struct PrintErr : Print<err.Code, err.LineNumber, err.Position> {};
 }
