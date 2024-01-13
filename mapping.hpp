@@ -104,8 +104,14 @@ namespace NCompileTimeJsonParser {
                 .Value = Error(LpCounter, NError::ErrorCode::IteratorDereferenceError)
             };
             return {
-                .Key = TJsonValue{Data.substr(MainIndex, CurKeyEndPos - MainIndex)}.AsString(),
-                .Value = TJsonValue{Data.substr(CurValueStartPos, CurValueEndPos - CurValueStartPos)},
+                .Key = TJsonValue{
+                    Data.substr(MainIndex, CurKeyEndPos - MainIndex),
+                    LpCounter,
+                }.AsString(),
+                .Value = TJsonValue{
+                    Data.substr(CurValueStartPos, CurValueEndPos - CurValueStartPos),
+                    LpCounter,
+                },
             };
         } 
     }; 

@@ -54,7 +54,9 @@ namespace NCompileTimeJsonParser {
         constexpr Iterator() : Iterator{{}, {}, std::string_view::npos} {};
         constexpr auto operator*() const -> value_type {
             if (ErrorOpt) return ErrorOpt.value();
-            if (IsEnd()) return Error(LpCounter, NError::ErrorCode::IteratorDereferenceError);
+            if (IsEnd()) return Error(
+                LpCounter, NError::ErrorCode::IteratorDereferenceError
+            );
             return TJsonValue{
                 Data.substr(MainIndex, CurElemEndPos - MainIndex),
                 LpCounter
