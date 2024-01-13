@@ -8,7 +8,6 @@
 #include "line_position_counter.hpp"
 #include "utils.hpp"
 
-#include <optional>
 #include <string_view>
 
 
@@ -82,7 +81,7 @@ namespace NCompileTimeJsonParser {
         }
         if (it.KeyIter.HasError()) return it.KeyIter.Error();
         if (it.ValIter.HasError()) return it.ValIter.Error();
-        return Error(it.ValIter.GetLpCounter(), NError::ErrorCode::MappingKeyNotFound);
+        return Error(it.ValIter.GetBegLpCounter(), NError::ErrorCode::MappingKeyNotFound);
     }
 
     constexpr auto TExpected<TJsonMapping>::begin() const -> TJsonMapping::Iterator {

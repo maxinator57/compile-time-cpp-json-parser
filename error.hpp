@@ -46,7 +46,8 @@ namespace NCompileTimeJsonParser::NError {
     struct TError {
         size_t LineNumber = 0;
         size_t Position = 0;
-        ErrorCode Code; 
+        ErrorCode Code;
+        constexpr auto operator==(const TError& other) const -> bool = default;
     };
     constexpr auto Error(TLinePositionCounter lpCounter, ErrorCode code) -> TError {
         return {

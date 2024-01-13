@@ -19,15 +19,15 @@ auto TestErrors() -> void {
     "    \"caba\": [2, 3]\n"
     "}";
     constexpr auto mapping = TJsonValue{str}.AsMapping();
-    std::cout << "mapping lp counter: "
-        << mapping.Value().GetLpCounter().LineNumber << " "
-        << mapping.Value().GetLpCounter().Position << "\n";
 
     auto it = mapping.begin();
     auto [k, v] = *it;
     auto result = v.AsArray();
     // NError::PrintErrAtCompileTime<result.Error()>{};
     std::cout << result.Error() << "\n";
+    auto val = mapping.At("caba");
+    auto err = val.AsDouble().Error();
+    std::cout << err << "\n";
 }
 
 
@@ -56,10 +56,25 @@ auto main() -> int {
     static_assert(arr.At(1).AsArray().At(0).AsInt() == 1);
     static_assert(arr.At(1).AsArray().At(1).AsInt() == 2); 
     {
-        constexpr auto cabaValue =  arr.At(1).AsArray().At(2).AsMapping().At("caba").AsArray();
-        static_assert(cabaValue.At(0).AsInt() == 4);
-        static_assert(cabaValue.At(1).AsInt() == 5);
-        static_assert(cabaValue.At(2).AsInt() == 6);
+        constexpr auto cabaValue =  arr.At(1).AsArray().At(2).AsMapping().At("caba");
+        static_assert(cabaValue.AsArray().At(0).AsInt() == 4);
+        static_assert(cabaValue.AsArray().At(1).AsInt() == 5);
+        static_assert(cabaValue.AsArray().At(2).AsInt() == 6);
+        static_assert(
+            arr.At(1).AsArray().At(2).AsMapping().At("aba").AsArray().Error()
+            ==
+            NError::TError{.LineNumber = 2, .Position = 19, .Code = NError::ErrorCode::TypeError}
+        );
+        static_assert(
+            cabaValue.AsMapping().Error()
+            ==
+            NError::TError{.LineNumber = 2, .Position = 31, .Code = NError::ErrorCode::TypeError}
+        );
+        static_assert(
+            arr.At(1).AsArray().At(2).AsMapping().At("caba").AsMapping().Error()
+            ==
+            NError::TError{.LineNumber = 2, .Position = 31, .Code = NError::ErrorCode::TypeError}
+        );
     }
 
     {

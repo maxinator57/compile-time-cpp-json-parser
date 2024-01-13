@@ -52,11 +52,17 @@ namespace NCompileTimeJsonParser::NUtils {
     ) -> std::string_view::size_type {
         if (startPos == std::string_view::npos) return startPos;
         auto pos = startPos;
+        auto prevLpCounter = lpCounter.Copy();
         for (char ch : str.substr(startPos)) {
+            prevLpCounter = lpCounter;
             lpCounter.Process(ch);
-            if (predicate(ch)) return pos;
+            if (predicate(ch)) {
+                lpCounter = prevLpCounter;
+                return pos;
+            }
             ++pos;
         }
+        lpCounter = prevLpCounter;
         return std::string_view::npos;
     }
 
@@ -71,28 +77,40 @@ namespace NCompileTimeJsonParser::NUtils {
         std::string_view::size_type pos = 0
     ) -> TExpected<std::string_view::size_type> {
         if (str.size() <= pos) return std::string_view::npos;
+        auto prevLpCounter = lpCounter;
         for (char ch : str.substr(pos)) {
+            prevLpCounter = lpCounter;
             lpCounter.Process(ch);
             if (ch == '[' || ch == '{') {
                 stack.push(ch);
             } else if (ch == ']') {
-                if (stack.top() != '[') return Error(
-                    lpCounter,
-                    NError::ErrorCode::SyntaxError
-                );
+                if (stack.top() != '[') {
+                    lpCounter = prevLpCounter;
+                    return Error(
+                        lpCounter,
+                        NError::ErrorCode::SyntaxError
+                    );
+                }
                 stack.pop();
             } else if (ch == '}') {
                 // TODO: distinguish between these two errors
-                if (stack.top() != '{') return Error(
-                    lpCounter,
-                    NError::ErrorCode::SyntaxError
-                );
+                if (stack.top() != '{') {
+                    lpCounter = prevLpCounter;
+                    return Error(
+                        lpCounter,
+                        NError::ErrorCode::SyntaxError
+                    );
+                }
                 stack.pop();
             };
             const auto balance = stack.size();
-            if (balance == 0 && predicate(ch)) return pos;
+            if (balance == 0 && predicate(ch)) {
+                lpCounter = prevLpCounter;
+                return pos;
+            }
             ++pos;
         }
+        lpCounter = prevLpCounter;
         if (const auto balance = stack.size(); balance != 0) return Error(
             lpCounter,
             NError::ErrorCode::SyntaxError

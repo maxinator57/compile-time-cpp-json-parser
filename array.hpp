@@ -8,7 +8,6 @@
 #include "line_position_counter.hpp"
 #include "utils.hpp"
 
-#include <optional>
 #include <string_view>
 
 

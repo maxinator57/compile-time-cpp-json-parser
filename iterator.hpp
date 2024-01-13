@@ -16,7 +16,8 @@ namespace NCompileTimeJsonParser {
     private:
         using TSelf = TGenericSerializedSequenceIterator;
         std::string_view Data; 
-        TLinePositionCounter LpCounter;
+        TLinePositionCounter ElemBegLpCounter;
+        TLinePositionCounter ElemEndLpCounter;
         std::string_view::size_type CurElemBegPos;
         std::string_view::size_type CurElemEndPos;
         std::optional<NError::TError> ErrorOpt; 
@@ -36,8 +37,8 @@ namespace NCompileTimeJsonParser {
         constexpr auto Error() const -> const NError::TError& {
             return ErrorOpt.value();
         }
-        constexpr auto GetLpCounter() const -> const TLinePositionCounter& {
-            return LpCounter;
+        constexpr auto GetBegLpCounter() const -> const TLinePositionCounter& {
+            return ElemBegLpCounter;
         }
 
         constexpr TGenericSerializedSequenceIterator(
@@ -47,13 +48,14 @@ namespace NCompileTimeJsonParser {
             char delimiter
         )
             : Data(data)
-            , LpCounter(lpCounter)
+            , ElemBegLpCounter(lpCounter)
         {
             CurElemBegPos = NUtils::FindFirstOf(
-                Data, LpCounter,
+                Data, ElemBegLpCounter,
                 [](char ch) { return !NUtils::IsSpace(ch); },
                 startingPos
             );
+            ElemEndLpCounter = ElemBegLpCounter;
             if (IsEnd()) {
                 CurElemEndPos = std::string_view::npos;
                 return;
@@ -61,8 +63,8 @@ namespace NCompileTimeJsonParser {
             {
                 auto nextPosOrErr = NUtils::FindCurElementEndPos(
                     Data,
-                    LpCounter,
-                    CurElemBegPos + 1,
+                    ElemEndLpCounter,
+                    CurElemBegPos,
                     delimiter
                 );
                 if (nextPosOrErr.HasError()) {
@@ -89,10 +91,11 @@ namespace NCompileTimeJsonParser {
             {
                 auto nextPosOrErr = NUtils::FindNextElementStartPos(
                     Data,
-                    LpCounter,
+                    ElemEndLpCounter,
                     CurElemEndPos,
                     firstDelimiter
                 );
+                ElemBegLpCounter = ElemEndLpCounter;
                 if (nextPosOrErr.HasError()) {
                     SetError(std::move(nextPosOrErr.Error()));
                     return *this;
@@ -103,7 +106,7 @@ namespace NCompileTimeJsonParser {
             {
                 auto nextPosOrErr = NUtils::FindCurElementEndPos(
                     Data,
-                    LpCounter,
+                    ElemEndLpCounter,
                     CurElemBegPos,
                     secondDelimiter
                 );
@@ -119,12 +122,12 @@ namespace NCompileTimeJsonParser {
         constexpr auto operator*() const -> TExpected<TJsonValue> {
             if (ErrorOpt) return ErrorOpt.value();
             if (IsEnd()) return NError::Error(
-                LpCounter,
+                ElemBegLpCounter,
                 NError::ErrorCode::IteratorDereferenceError
             );
             return TJsonValue(
                 Data.substr(CurElemBegPos, CurElemEndPos - CurElemBegPos),
-                LpCounter
+                ElemBegLpCounter
             );
         }
 
