@@ -50,6 +50,7 @@ namespace NCompileTimeJsonParser::NUtils {
         std::invocable<char> auto&& predicate,
         std::string_view::size_type startPos = 0
     ) -> std::string_view::size_type {
+        if (startPos == std::string_view::npos) return startPos;
         auto pos = startPos;
         for (char ch : str.substr(startPos)) {
             lpCounter.Process(ch);
@@ -69,6 +70,7 @@ namespace NCompileTimeJsonParser::NUtils {
         std::invocable<char> auto&& predicate,
         std::string_view::size_type pos = 0
     ) -> TExpected<std::string_view::size_type> {
+        if (str.size() <= pos) return std::string_view::npos;
         for (char ch : str.substr(pos)) {
             lpCounter.Process(ch);
             if (ch == '[' || ch == '{') {
@@ -121,6 +123,7 @@ namespace NCompileTimeJsonParser::NUtils {
         std::string_view::size_type pos = 0,
         char delimiter = ','
     ) -> TExpected<std::string_view::size_type> {
+        if (pos == std::string_view::npos) return pos;
         {
             const auto result = FindFirstOfWithZeroBracketBalance(
                 str,

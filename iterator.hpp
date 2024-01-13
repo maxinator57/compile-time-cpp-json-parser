@@ -3,106 +3,133 @@
 
 #include "api.hpp"
 #include "error.hpp"
+#include "expected.hpp"
 #include "line_position_counter.hpp"
 #include "utils.hpp"
 
-#include <concepts>
 #include <optional>
 #include <string_view>
 
 
-namespace NCompileTimeJsonParser {
-    // For the use with CRTP pattern
-    // `Derived` should implement the following methods:
-    //     - `StepForwardRemainingImpl() -> void`
-    //        This method does the remaining job of `StepForward` method
-    //        by incrementing the custom text position iterators of `Derived`
-    //     - `GetStartPos() -> std::string_view::size_type`
-    //        This method returns the text position from which
-    //        to start searching for the start of next json array/mapping
-    //        element: i.e.
-    //            - For array: the ending position of the last
-    //              already read element
-    //            - For mapping: the ending position of the value from the
-    //              last already read key-value pair
-    //     - ``
-    template <class Derived>
-    requires std::same_as<Derived, TJsonArray::Iterator>
-          || std::same_as<Derived, TJsonMapping::Iterator>
-    class TIteratorMixin { 
-    protected:
+namespace NCompileTimeJsonParser { 
+    class TGenericSerializedSequenceIterator {
+    private:
+        using TSelf = TGenericSerializedSequenceIterator;
         std::string_view Data; 
         TLinePositionCounter LpCounter;
-        std::optional<NError::TError> ErrorOpt;
-        std::string_view::size_type MainIndex;
-    protected:
-        constexpr auto IsEnd() const -> bool {
-            return MainIndex == std::string_view::npos;
-        }
+        std::string_view::size_type CurElemBegPos;
+        std::string_view::size_type CurElemEndPos;
+        std::optional<NError::TError> ErrorOpt; 
+    private:
         constexpr auto SetError(NError::TError&& err) -> void {
-            MainIndex = std::string_view::npos;
+            CurElemBegPos = std::string_view::npos;
             ErrorOpt.emplace(std::move(err));
         }
-        constexpr auto StepForward(std::string_view::size_type startPos) -> void {
-            auto posOrErr = NUtils::FindNextElementStartPos(Data, LpCounter, startPos);
-            if (posOrErr.HasError()) {
-                SetError(std::move(posOrErr.Error()));
-                return;
-            }
-            MainIndex = posOrErr.Value();
-            if (IsEnd()) return;
-            // Note: needs to be implemented by `Derived`
-            static_cast<Derived*>(this)->StepForwardRemainingImpl();
+
+    public:
+        constexpr auto IsEnd() const -> bool {
+            return CurElemBegPos == std::string_view::npos;
         }
-        // To be called from `Derived` constructor after `TIteratorMixin` constructor
-        constexpr auto Init() {
-            if (IsEnd()) return;
-            MainIndex = NUtils::FindFirstOf(
-                Data, LpCounter,
-                [](char ch) { return !NUtils::IsSpace(ch); },
-                MainIndex
-            );
-            if (IsEnd()) return;
-            // Note: needs to be implemented by `Derived`
-            static_cast<Derived*>(this)->StepForwardRemainingImpl();
+        constexpr auto HasError() const -> bool {
+            return ErrorOpt.has_value();
         }
-        constexpr TIteratorMixin<Derived>(
-            std::string_view data, 
+        constexpr auto Error() const -> const NError::TError& {
+            return ErrorOpt.value();
+        }
+        constexpr auto GetLpCounter() const -> const TLinePositionCounter& {
+            return LpCounter;
+        }
+
+        constexpr TGenericSerializedSequenceIterator(
+            std::string_view data,
             TLinePositionCounter lpCounter,
-            std::string_view::size_type startPos = 0
+            std::string_view::size_type startingPos,
+            char delimiter
         )
             : Data(data)
             , LpCounter(lpCounter)
-            , MainIndex(startPos)
         {
+            CurElemBegPos = NUtils::FindFirstOf(
+                Data, LpCounter,
+                [](char ch) { return !NUtils::IsSpace(ch); },
+                startingPos
+            );
+            if (IsEnd()) {
+                CurElemEndPos = std::string_view::npos;
+                return;
+            }
+            {
+                auto nextPosOrErr = NUtils::FindCurElementEndPos(
+                    Data,
+                    LpCounter,
+                    CurElemBegPos + 1,
+                    delimiter
+                );
+                if (nextPosOrErr.HasError()) {
+                    SetError(std::move(nextPosOrErr.Error()));
+                    return;
+                }
+                CurElemEndPos = nextPosOrErr.Value();
+            }
         }
+
         static constexpr auto Begin(
-            std::string_view data, 
-            TLinePositionCounter lpCounter
-        ) -> Derived { return Derived{data, lpCounter, 0}; }
+            std::string_view data,
+            TLinePositionCounter lpCounter,
+            char delimiter
+        ) -> TSelf { return {data, lpCounter, 0, delimiter}; }
+
         static constexpr auto End(
             std::string_view data, 
             TLinePositionCounter lpCounter
-        ) -> Derived { return Derived{data, lpCounter, std::string_view::npos}; }
-    public:
-        constexpr auto operator++() -> Derived& {
-            if (IsEnd()) return static_cast<Derived&>(*this);
-            // Note: needs to be implemented by `Derived`
-            const auto startPos = static_cast<Derived*>(this)->GetStartPos();
-            if (startPos == std::string_view::npos) {
-                MainIndex = std::string_view::npos;
-            } else {
-                StepForward(startPos);
+        ) -> TSelf { return {data, lpCounter, std::string_view::npos, {}}; }
+
+        constexpr auto StepForward(char firstDelimiter, char secondDelimiter) -> TSelf& {
+            if (IsEnd()) return *this;
+            {
+                auto nextPosOrErr = NUtils::FindNextElementStartPos(
+                    Data,
+                    LpCounter,
+                    CurElemEndPos,
+                    firstDelimiter
+                );
+                if (nextPosOrErr.HasError()) {
+                    SetError(std::move(nextPosOrErr.Error()));
+                    return *this;
+                }
+                CurElemBegPos = nextPosOrErr.Value(); 
             }
-            return static_cast<Derived&>(*this);
+            if (IsEnd()) return *this;
+            {
+                auto nextPosOrErr = NUtils::FindCurElementEndPos(
+                    Data,
+                    LpCounter,
+                    CurElemBegPos,
+                    secondDelimiter
+                );
+                if (nextPosOrErr.HasError()) {
+                    SetError(std::move(nextPosOrErr.Error()));
+                    return *this;
+                }
+                CurElemEndPos = nextPosOrErr.Value();
+            }
+            return *this;
         }
-        constexpr auto operator++(int) -> Derived {
-            auto copy = static_cast<Derived&>(*this);
-            ++(*this);
-            return copy;
+
+        constexpr auto operator*() const -> TExpected<TJsonValue> {
+            if (ErrorOpt) return ErrorOpt.value();
+            if (IsEnd()) return NError::Error(
+                LpCounter,
+                NError::ErrorCode::IteratorDereferenceError
+            );
+            return TJsonValue(
+                Data.substr(CurElemBegPos, CurElemEndPos - CurElemBegPos),
+                LpCounter
+            );
         }
-        constexpr auto operator==(const TIteratorMixin<Derived>& other) const -> bool {
-            return Data == other.Data && MainIndex == other.MainIndex;
+
+        constexpr auto operator==(const TSelf& other) const -> bool {
+            return Data == other.Data && CurElemBegPos == other.CurElemBegPos;
         }
     };
 }

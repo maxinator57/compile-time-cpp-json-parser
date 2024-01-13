@@ -18,81 +18,71 @@ auto TestErrors() -> void {
     "\"aba\": 1,\n"
     "    \"caba\": [2, 3]\n"
     "}";
-    auto mapping = TJsonValue{str}.AsMapping();
+    constexpr auto mapping = TJsonValue{str}.AsMapping();
     std::cout << "mapping lp counter: "
         << mapping.Value().GetLpCounter().LineNumber << " "
         << mapping.Value().GetLpCounter().Position << "\n";
 
     auto it = mapping.begin();
-    auto value = *it;
-    auto [k, v] = *it; 
-    std::cout << "`caba` value lp counter: "
-        << mapping.At("caba").Value().GetLpCounter().LineNumber << " "
-        << mapping.At("caba").Value().GetLpCounter().Position << "\n";
-    // static_assert(value.Value.AsInt().HasValue());
-    // constexpr auto result = value.AsInt();
-    // return result.Error(); 
-    // NError::PrintErr<result.Error()>{};
+    auto [k, v] = *it;
+    auto result = v.AsArray();
+    // NError::PrintErrAtCompileTime<result.Error()>{};
+    std::cout << result.Error() << "\n";
 }
 
 
 auto main() -> int {
-    // using namespace NCompileTimeJsonParser;
+    using namespace NCompileTimeJsonParser;
 
-    // constexpr auto str =
-    // "[\n"
-    // "                    123456789.10111213,         \n"
-    // "     [1,2, {\"aba\": 3, \"caba\" : [4, 5, 6]}], \n"
-    // "   [\"abacaba\",                                \n"
-    // "      -789]       ,                             \n"
-    // "                      -200,                     \n"
-    // "]";
+    constexpr auto str =
+    "[\n"
+    "                    123456789.10111213,         \n"
+    "     [1,2, {\"aba\": 3, \"caba\" : [4, 5, 6]}], \n"
+    "   [\"abacaba\",                                \n"
+    "      -789]       ,                             \n"
+    "                      -200,                     \n"
+    "]";
 
-    // constexpr auto arr = TJsonValue{str}.AsArray();
-    // static_assert(arr.HasValue());
-    // static_assert(arr.At(0).AsDouble() == 123456789.10111213);
-    // static_assert(arr.At(1).AsArray().Value().At(0).AsInt() == 1);
-    // static_assert(arr.At(1).AsArray().Value().At(1).AsInt() == 2);
-    // static_assert(arr.At(1).AsArray().Value().At(3).HasError());
-    // static_assert(arr.At(0).AsArray().HasError());
-    // constexpr auto err = arr.At(0).AsArray().Error();
-    // std::cout << err.LineNumber << " " << err.Position << " " << static_cast<int>(err.Code) << "\n";
+    constexpr auto arr = TJsonValue{str}.AsArray();
+    static_assert(arr.HasValue());
+    static_assert(arr.At(0).AsDouble() == 123456789.10111213);
+    static_assert(arr.At(1).AsArray().Value().At(0).AsInt() == 1);
+    static_assert(arr.At(1).AsArray().Value().At(1).AsInt() == 2);
+    static_assert(arr.At(1).AsArray().Value().At(3).HasError());
+    static_assert(arr.At(0).AsArray().HasError());
+    constexpr auto err = arr.At(0).AsArray().Error();
+    std::cout << err.LineNumber << " " << err.Position << " " << static_cast<int>(err.Code) << "\n";
     
-    // static_assert(arr.At(1).AsArray().At(0).AsInt() == 1);
-    // static_assert(arr.At(1).AsArray().At(1).AsInt() == 2); 
-    // {
-    //     constexpr auto cabaValue =  arr.At(1).AsArray().At(2).AsMapping().At("caba").AsArray();
-    //     static_assert(cabaValue.At(0).AsInt() == 4);
-    //     static_assert(cabaValue.At(1).AsInt() == 5);
-    //     static_assert(cabaValue.At(2).AsInt() == 6);
-    // }
+    static_assert(arr.At(1).AsArray().At(0).AsInt() == 1);
+    static_assert(arr.At(1).AsArray().At(1).AsInt() == 2); 
+    {
+        constexpr auto cabaValue =  arr.At(1).AsArray().At(2).AsMapping().At("caba").AsArray();
+        static_assert(cabaValue.At(0).AsInt() == 4);
+        static_assert(cabaValue.At(1).AsInt() == 5);
+        static_assert(cabaValue.At(2).AsInt() == 6);
+    }
 
-    // {
-    //     constexpr auto arr2 = arr.At(2).AsArray();
-    //     static_assert(arr2.At(0).AsString() == String{"abacaba"});
-    //     static_assert(arr2.At(1).AsInt() == -789);
-    // }
+    {
+        constexpr auto arr2 = arr.At(2).AsArray();
+        static_assert(arr2.At(0).AsString() == String{"abacaba"});
+        static_assert(arr2.At(1).AsInt() == -789);
+    }
 
-    // static_assert(arr.At(3).AsInt() == -200);
+    static_assert(arr.At(3).AsInt() == -200);
 
-    // // Iterators:
+    // Iterators:
 
-    // static_assert(std::forward_iterator<TJsonArray::Iterator>);
-    // static_assert(std::forward_iterator<TJsonMapping::Iterator>);
+    static_assert(std::forward_iterator<TJsonArray::Iterator>);
+    static_assert(std::forward_iterator<TJsonMapping::Iterator>);
 
-    // {
-    //     // runtime
-    //     auto mapping = arr.At(1).AsArray().At(2).AsMapping();
-    //     for (auto&& [k, v] : mapping) {
-    //         assert(k.Value().ends_with("aba"));
-    //         assert(v.AsInt().HasValue() || v.AsArray().HasValue());
-    //     }
-    // }
-
-    // auto err2 = TestErrors();
-    // std::cout
-    //     << err2.Code << " at "
-    //     << "line " << err2.LineNumber 
-    //     << ", position " << err2.Position << "\n";
+    {
+        // runtime
+        auto mapping = arr.At(1).AsArray().At(2).AsMapping();
+        for (auto&& [k, v] : mapping) {
+            assert(k.Value().ends_with("aba"));
+            assert(v.AsInt().HasValue() || v.AsArray().HasValue());
+        }
+    }
+ 
     TestErrors();
 }

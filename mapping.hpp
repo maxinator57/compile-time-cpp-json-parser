@@ -8,10 +8,7 @@
 #include "line_position_counter.hpp"
 #include "utils.hpp"
 
-#include <iostream>
 #include <optional>
-#include <sstream>
-#include <stdexcept>
 #include <string_view>
 
 
@@ -29,59 +26,18 @@ namespace NCompileTimeJsonParser {
         return LpCounter;
     }
 
-    class TJsonMapping::Iterator : public TIteratorMixin<TJsonMapping::Iterator> {
-        using TBase = TIteratorMixin<TJsonMapping::Iterator>;
+    class TJsonMapping::Iterator {
     private:
-        // MainIndex == CurKeyStartPos
-        std::string_view::size_type CurKeyEndPos = 0;
-        std::string_view::size_type CurValueStartPos = 0;
-        std::string_view::size_type CurValueEndPos = 0;
-
+        TGenericSerializedSequenceIterator KeyIter;
+        TGenericSerializedSequenceIterator ValIter;
         friend class TJsonMapping;
-        friend class TIteratorMixin<TJsonMapping::Iterator>;
     private:
-        constexpr auto StepForwardRemainingImpl() -> void {
-            {
-                auto posOrErr = NUtils::FindCurElementEndPos(Data, LpCounter, MainIndex, ':');
-                if (posOrErr.HasError()) {
-                    SetError(std::move(posOrErr.Error()));
-                    return;
-                }
-                CurKeyEndPos = posOrErr.Value();
-                if (CurKeyEndPos == std::string_view::npos) {
-                    SetError(Error(LpCounter, NError::ErrorCode::MissingValueError));
-                    return;
-                }
-            }
-            {
-                auto posOrErr = NUtils::FindNextElementStartPos(Data, LpCounter, CurKeyEndPos, ':');
-                if (posOrErr.HasError()) {
-                    SetError(std::move(posOrErr.Error()));
-                    return;
-                }
-                CurValueStartPos = posOrErr.Value();
-                if (CurValueStartPos == std::string_view::npos) {
-                    SetError(Error(LpCounter, NError::ErrorCode::MissingValueError));
-                    return;
-                }
-            }
-            {
-                auto posOrErr = NUtils::FindCurElementEndPos(Data, LpCounter, CurValueStartPos);
-                if (posOrErr.HasError()) {
-                    SetError(std::move(posOrErr.Error()));
-                    return;
-                }
-                CurValueEndPos = posOrErr.Value();
-            }
-        }
-        constexpr auto GetStartPos() const -> std::string_view::size_type {
-            return CurValueEndPos;
-        }
         constexpr Iterator(
-            std::string_view data,
-            TLinePositionCounter lpCounter,
-            std::string_view::size_type startPos
-        ) : TBase(data, lpCounter, startPos) { Init(); }
+            TGenericSerializedSequenceIterator&& iter
+        ) : KeyIter(std::move(iter)), ValIter(KeyIter) {
+            ValIter.StepForward(':', ',');
+        }
+
     public:
         using difference_type = int;
         struct value_type {
@@ -89,47 +45,44 @@ namespace NCompileTimeJsonParser {
             TExpected<TJsonValue> Value;
         };
     public:
-        constexpr Iterator() : Iterator{{}, {}, std::string_view::npos} {};
+        constexpr Iterator() : Iterator(TGenericSerializedSequenceIterator::End({}, {})) {};
         constexpr auto operator*() const -> value_type {
-            if (ErrorOpt) {
-                if (ErrorOpt->Code == NError::ErrorCode::MissingValueError) return {
-                    // TODO: calculate key position in text
-                    .Key = TJsonValue{Data.substr(MainIndex, CurKeyEndPos - MainIndex)}.AsString(),
-                    .Value = ErrorOpt.value()
-                };
-                return {.Key = "", .Value = ErrorOpt.value()};
-            }
-            if (IsEnd()) return {
-                .Key = "",
-                .Value = Error(LpCounter, NError::ErrorCode::IteratorDereferenceError)
-            };
-            return {
-                .Key = TJsonValue{
-                    Data.substr(MainIndex, CurKeyEndPos - MainIndex),
-                    LpCounter,
-                }.AsString(),
-                .Value = TJsonValue{
-                    Data.substr(CurValueStartPos, CurValueEndPos - CurValueStartPos),
-                    LpCounter,
-                },
-            };
-        } 
-    }; 
+            // TODO: improve error handling here (return more specific errors when possible)
+            auto k = (*KeyIter).AsString();
+            auto v = *ValIter;
+            return {.Key = k, .Value = v};
+        }
+        constexpr auto operator++() -> Iterator& {
+            if (KeyIter.IsEnd()) return *this;
+            KeyIter = ValIter.StepForward(',', ':');
+            ValIter.StepForward(':', ',');
+            return *this;
+        }
+        constexpr auto operator++(int) -> Iterator {
+            auto copy = *this;
+            ++(*this);
+            return copy;
+        }
+        constexpr auto operator==(const Iterator& other) const -> bool = default;
+    };
 
-    constexpr auto TJsonMapping::begin() const -> Iterator {
-        return Iterator::Begin(Data, LpCounter); 
+    constexpr auto TJsonMapping::begin() const -> Iterator { 
+        return TGenericSerializedSequenceIterator::Begin(Data, LpCounter, ':');
     }
 
     constexpr auto TJsonMapping::end() const -> Iterator {
-        return Iterator::End(Data, LpCounter); 
+        return TGenericSerializedSequenceIterator::End(Data, LpCounter);
     }
 
     constexpr auto TJsonMapping::At(std::string_view key) const -> TExpected<TJsonValue> {
-        auto finish = end();
-        for (auto [k, v] : *this) {
+        auto it = begin();
+        for (; it != end(); ++it) {
+            auto [k, v] = *it;
             if (k == key) return v;
         }
-        return Error(LpCounter, NError::ErrorCode::MappingKeyNotFound);
+        if (it.KeyIter.HasError()) return it.KeyIter.Error();
+        if (it.ValIter.HasError()) return it.ValIter.Error();
+        return Error(it.ValIter.GetLpCounter(), NError::ErrorCode::MappingKeyNotFound);
     }
 
     constexpr auto TExpected<TJsonMapping>::begin() const -> TJsonMapping::Iterator {
