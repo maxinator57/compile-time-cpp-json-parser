@@ -1,6 +1,5 @@
 #pragma once
 
-#include "error.hpp"
 #include "line_position_counter.hpp"
 
 #include <string_view>

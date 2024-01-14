@@ -2,13 +2,11 @@
 
 
 #include "api.hpp"
-#include "array.hpp"
 #include "error.hpp"
 #include "expected.hpp"
 #include "line_position_counter.hpp"
-#include "mapping.hpp"
+#include "utils.hpp"
 
-#include <concepts>
 #include <string_view>
 
 
@@ -16,7 +14,7 @@ namespace NCompileTimeJsonParser {
     constexpr TJsonValue::TJsonValue(
         std::string_view data,
         TLinePositionCounter lpCounter
-    ) : Data(data), LpCounter(lpCounter) {}
+    ) : Data(NUtils::StripSpaces(data)), LpCounter(lpCounter) {}
 
     constexpr auto TJsonValue::GetData() const -> std::string_view {
         return Data;

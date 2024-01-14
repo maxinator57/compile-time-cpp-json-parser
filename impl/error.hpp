@@ -1,10 +1,8 @@
 #pragma once
 
-#include "api.hpp"
 #include "line_position_counter.hpp"
 
 #include <string_view>
-#include <type_traits>
 
 
 namespace NCompileTimeJsonParser::NError {
@@ -65,9 +63,9 @@ namespace NCompileTimeJsonParser::NError {
     }
 
     template <ErrorCode code, size_t lineNumber, size_t position>
-    struct Print {
+    struct PrintErrAtCompileTimeImpl {
         static_assert(static_cast<int>(code) == 0);
     };
     template <TError err>
-    struct PrintErrAtCompileTime : Print<err.Code, err.LineNumber, err.Position> {};
+    struct PrintErrAtCompileTime : PrintErrAtCompileTimeImpl<err.Code, err.LineNumber, err.Position> {};
 }

@@ -7,7 +7,6 @@
 #include "line_position_counter.hpp"
 
 #include <array>
-#include <concepts>
 #include <stack>
 #include <string_view>
 #include <type_traits>
@@ -31,6 +30,7 @@ namespace NCompileTimeJsonParser::NUtils {
         constexpr auto size() const -> size_t { return Size; }
         constexpr auto push(char ch) -> void {
             if (Size == kCapacity) {
+                // TODO: handle this error in some sensible way
                 if (std::is_constant_evaluated()) throw "aaaaa"; 
             }
             Data[Size] = ch;
@@ -42,6 +42,12 @@ namespace NCompileTimeJsonParser::NUtils {
     constexpr auto kSpaces = std::string_view{" \t\n"};
     constexpr auto IsSpace(char ch) -> bool {
         return kSpaces.find(ch) != std::string_view::npos;
+    }
+    constexpr auto StripSpaces(std::string_view str) -> std::string_view {
+        auto start = str.find_first_not_of(kSpaces);
+        if (start == std::string_view::npos) return {};
+        auto end = str.find_last_not_of(kSpaces);
+        return str.substr(start, end - start + 1);
     }
 
     constexpr auto FindFirstOf(

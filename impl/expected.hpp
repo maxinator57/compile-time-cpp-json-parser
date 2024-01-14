@@ -10,7 +10,6 @@
 namespace NCompileTimeJsonParser {
     template <class T>
     struct TExpectedMixin : private std::variant<T, NError::TError> {
-        // Constructor:
         template <class U>
         constexpr TExpectedMixin(U&& value)
             : std::variant<T, NError::TError>(std::forward<U>(value))
@@ -42,12 +41,12 @@ namespace NCompileTimeJsonParser {
             if (HasError() && other.HasError()) return Error() == other.Error();
             return false;
         }
-        constexpr auto operator==(const T& otherValue) const -> bool {
-            return HasValue() && Value() == otherValue;
-        }
-        constexpr auto operator==(const NError::TError& otherError) const -> bool {
-            return HasError() && Error() == otherError;
-        }
+        // constexpr auto operator==(const T& otherValue) const -> bool {
+        //     return HasValue() && Value() == otherValue;
+        // }
+        // constexpr auto operator==(const NError::TError& otherError) const -> bool {
+        //     return HasError() && Error() == otherError;
+        // }
     };
 
     template <class T>
