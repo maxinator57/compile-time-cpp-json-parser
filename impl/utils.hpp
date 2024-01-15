@@ -12,7 +12,9 @@
 #include <type_traits>
 
 
-namespace NCompileTimeJsonParser::NUtils { 
+namespace NCompileTimeJsonParser::NUtils {
+    // A `std::stack<char>` replacement with static memory storage.
+    // It is to be used only at compile-time.
     struct TCompileTimeStack {
     private:
         static constexpr auto kCapacity = []() -> size_t {
@@ -30,8 +32,15 @@ namespace NCompileTimeJsonParser::NUtils {
         constexpr auto size() const -> size_t { return Size; }
         constexpr auto push(char ch) -> void {
             if (Size == kCapacity) {
-                // TODO: handle this error in some sensible way
-                if (std::is_constant_evaluated()) throw "aaaaa"; 
+                // throws because `TCompileTimeStack` is used only at compile time
+                throw Error(
+                    TLinePositionCounter{},
+                    NError::ErrorCode::CompileTimeStackCapacityExceededError,
+                    "try to set `JSON_PARSER_COMPILE_TIME_STACK_CAPACITY` "
+                    "preprocessor option to a greater value when compiling "
+                    "(by adding \"-D JSON_PARSER_COMPILE_TIME_STACK_CAPACITY=<value>\" compilation flag, "
+                    "default value is 10)"
+                );
             }
             Data[Size] = ch;
             ++Size;
@@ -83,44 +92,47 @@ namespace NCompileTimeJsonParser::NUtils {
         std::string_view::size_type pos = 0
     ) -> TExpected<std::string_view::size_type> {
         if (str.size() <= pos) return std::string_view::npos;
-        auto prevLpCounter = lpCounter;
         for (char ch : str.substr(pos)) {
-            prevLpCounter = lpCounter;
             lpCounter.Process(ch);
             if (ch == '[' || ch == '{') {
                 stack.push(ch);
             } else if (ch == ']') {
-                if (stack.top() != '[') {
-                    lpCounter = prevLpCounter;
+                if (stack.empty() || stack.top() != '[') {
+                    lpCounter.StepBack();
                     return Error(
                         lpCounter,
-                        NError::ErrorCode::SyntaxError
+                        NError::ErrorCode::SyntaxError,
+                        "brackets mismatch: encountered an excess ']'"
                     );
                 }
                 stack.pop();
             } else if (ch == '}') {
                 // TODO: distinguish between these two errors
-                if (stack.top() != '{') {
-                    lpCounter = prevLpCounter;
+                if (stack.empty() || stack.top() != '{') {
+                    lpCounter.StepBack();
                     return Error(
                         lpCounter,
-                        NError::ErrorCode::SyntaxError
+                        NError::ErrorCode::SyntaxError,
+                        "brackets mismatch: encountered an excess '}'"
                     );
                 }
                 stack.pop();
             };
             const auto balance = stack.size();
             if (balance == 0 && predicate(ch)) {
-                lpCounter = prevLpCounter;
+                lpCounter.StepBack();
                 return pos;
             }
             ++pos;
         }
-        lpCounter = prevLpCounter;
-        if (const auto balance = stack.size(); balance != 0) return Error(
-            lpCounter,
-            NError::ErrorCode::SyntaxError
-        );
+        if (const auto balance = stack.size(); balance != 0) {
+            lpCounter.StepBack();
+            return Error(
+                lpCounter,
+                NError::ErrorCode::SyntaxError,
+                "brackets mismatch: encountered some unmatched opening brackets"
+            );
+        }
         return std::string_view::npos;
     }
 

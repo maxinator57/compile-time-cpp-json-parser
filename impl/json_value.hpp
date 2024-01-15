@@ -44,11 +44,7 @@ namespace NCompileTimeJsonParser {
         const auto dotPosition = Data.find_first_of('.');
         if (dotPosition == std::string_view::npos || dotPosition == Data.size() - 1) {
             auto intOrErr = TJsonValue{Data.substr(0, dotPosition)}.AsInt();
-            if (intOrErr.HasError()) return NError::TError{
-                .LineNumber = LpCounter.LineNumber,
-                .Position = LpCounter.Position,
-                .Code = NError::ErrorCode::TypeError,
-            };
+            if (intOrErr.HasError()) return Error(LpCounter, NError::ErrorCode::TypeError);
             return static_cast<double>(intOrErr.Value());
         }
 
@@ -109,19 +105,26 @@ namespace NCompileTimeJsonParser {
     constexpr auto TJsonValue::AsArray() const -> TExpected<TJsonArray> {
         if (Data.empty()) return Error(
             LpCounter,
-            NError::ErrorCode::MissingValueError
+            NError::ErrorCode::MissingValueError,
+            "empty underlying data while expecting an array"
         );
         if (Data[0] == '[' && Data.back() != ']') return Error(
-            LpCounter.Copy().Process(Data),
-            NError::ErrorCode::SyntaxError
+            LpCounter.Copy().Process(Data).StepBack(),
+            NError::ErrorCode::SyntaxError,
+            "a closing square bracket is probably missing "
+            "at the end of an array"
         );
         if (Data[0] != '[' && Data.back() == ']') return Error(
             LpCounter,
-            NError::ErrorCode::SyntaxError
+            NError::ErrorCode::SyntaxError,
+            "an opening square bracket is probably missing "
+            "at the start of the array"
         );
         if (Data[0] != '[' && Data.back() != ']') return Error(
             LpCounter,
-            NError::ErrorCode::TypeError
+            NError::ErrorCode::TypeError,
+            "either both square brackets are missing or the "
+            "underlying data does not represent an array"
         );
         return TJsonArray{
             Data.substr(1, Data.size() - 2),
@@ -132,19 +135,26 @@ namespace NCompileTimeJsonParser {
     constexpr auto TJsonValue::AsMapping() const -> TExpected<TJsonMapping> {
         if (Data.empty()) return Error(
             LpCounter,
-            NError::ErrorCode::MissingValueError
+            NError::ErrorCode::MissingValueError,
+            "empty underlying data while expecting a mapping"
         );
         if (Data[0] == '{' && Data.back() != '}') return Error(
-            LpCounter.Copy().Process(Data),
-            NError::ErrorCode::SyntaxError
+            LpCounter.Copy().Process(Data).StepBack(),
+            NError::ErrorCode::SyntaxError,
+            "a closing curly brace ('}') is probably missing "
+            "at the end of a mapping"
         );
         if (Data[0] != '{' && Data.back() == '}') return Error(
             LpCounter,
-            NError::ErrorCode::SyntaxError
+            NError::ErrorCode::SyntaxError,
+            "an opening curly brace ('{') is probably missing "
+            "at the start of a mapping"
         );
         if (Data[0] != '{' && Data.back() != '}') return Error(
             LpCounter,
-            NError::ErrorCode::TypeError
+            NError::ErrorCode::TypeError,
+            "either both curly braces ('{' and '}') are missing "
+            "or the underlying data does not represent a mapping"
         );
         return TJsonMapping{
             Data.substr(1, Data.size() - 2),

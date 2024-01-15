@@ -80,7 +80,7 @@ namespace NCompileTimeJsonParser {
         }
         if (it.KeyIter.HasError()) return it.KeyIter.Error();
         if (it.ValIter.HasError()) return it.ValIter.Error();
-        return Error(it.ValIter.GetBegLpCounter(), NError::ErrorCode::MappingKeyNotFound);
+        return Error(LpCounter, NError::ErrorCode::MappingKeyNotFound, key);
     }
 
     constexpr auto TExpected<TJsonMapping>::begin() const -> TJsonMapping::Iterator {

@@ -57,7 +57,11 @@ namespace NCompileTimeJsonParser {
         for (; it != finish && counter < idx; ++it, ++counter);
         if (it.Iter.HasError()) return it.Iter.Error();
         return it == finish
-            ? Error(LpCounter, NError::ErrorCode::ArrayIndexOutOfRange)
+            ? Error(
+                LpCounter.Copy().StepBack(),
+                NError::ErrorCode::ArrayIndexOutOfRange,
+                {.Index = idx, .ArrayLen = counter}
+            )
             : *it;
     }
 
