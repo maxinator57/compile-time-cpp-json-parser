@@ -1,6 +1,8 @@
+#include "impl/error.hpp"
 #include "parser.hpp"
 
 #include <cstdlib>
+#include <iostream>
 #include <numeric>
 #include <string_view>
 
@@ -156,11 +158,13 @@ auto TestBasicErrorHandling() -> void {
         static_assert(wrongLookup.Error() == NError::TError{
             .BasicInfo = {
                 .LineNumber = 5,
-                .Position = 15, // points at the starting position of the "params" mapping object 
+                .Position = 15, // points at the starting position of the "params" mapping object
                 .Code = NError::ErrorCode::MappingKeyNotFound
             },
-            .AdditionalInfo = "interpreters", // the requested key that doesn't exist in the mapping
+            .AdditionalInfo = NError::TMappingKeyNotFoundAdditionalInfo{"interpreters"},
+                // the requested key "interpreters" that doesn't exist in the mapping
         });
+        std::cout << wrongLookup.Error() << "\n"; 
     }
 }
 

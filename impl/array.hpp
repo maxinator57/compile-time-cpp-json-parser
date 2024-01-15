@@ -60,7 +60,10 @@ namespace NCompileTimeJsonParser {
             ? Error(
                 LpCounter.Copy().StepBack(),
                 NError::ErrorCode::ArrayIndexOutOfRange,
-                {.Index = idx, .ArrayLen = counter}
+                NError::TArrayIndexOutOfRangeAdditionalInfo{
+                    .Index = idx,
+                    .ArrayLen = counter
+                }
             )
             : *it;
     }

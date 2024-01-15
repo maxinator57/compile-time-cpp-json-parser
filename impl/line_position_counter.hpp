@@ -1,15 +1,15 @@
 #pragma once
 
 
-#include <cstddef>
+#include <cstdint>
 #include <string_view>
 
 
 namespace NCompileTimeJsonParser {
     struct TLinePositionCounter {
-        size_t LineNumber = 0;
-        size_t Position = 0;
-        size_t PrevPosition = 0;
+        uint16_t LineNumber = 0;
+        uint16_t Position = 0;
+        uint16_t PrevPosition = 0;
 
         constexpr auto Copy() const noexcept -> TLinePositionCounter {
             return *this;
