@@ -132,6 +132,10 @@ namespace NCompileTimeJsonParser {
         };
     }
 
+    constexpr auto TJsonValue::operator[](size_t idx) const -> TExpected<TJsonValue> {
+        return AsArray()[idx];
+    }
+
     constexpr auto TJsonValue::AsMapping() const -> TExpected<TJsonMapping> {
         if (Data.empty()) return Error(
             LpCounter,
@@ -162,6 +166,10 @@ namespace NCompileTimeJsonParser {
         };
     }
 
+    constexpr auto TJsonValue::operator[](std::string_view key) const -> TExpected<TJsonValue> {
+        return AsMapping()[key];
+    }
+
     // The following boilerplate is needed for syntactically nice
     // monadic operations support:
 
@@ -174,10 +182,18 @@ namespace NCompileTimeJsonParser {
     constexpr auto TExpected<TJsonValue>::AsString() const -> TExpected<String> {
         return HasValue() ? Value().AsString() : Error();
     }
+
     constexpr auto TExpected<TJsonValue>::AsArray() const -> TExpected<TJsonArray> {
         return HasValue() ? Value().AsArray() : Error();
     }
+    constexpr auto TExpected<TJsonValue>::operator[](size_t idx) const -> TExpected<TJsonValue> {
+        return AsArray()[idx];
+    }
+
     constexpr auto TExpected<TJsonValue>::AsMapping() const -> TExpected<TJsonMapping> {
         return HasValue() ? Value().AsMapping() : Error();
+    }
+    constexpr auto TExpected<TJsonValue>::operator[](std::string_view key) const -> TExpected<TJsonValue> {
+        return AsMapping()[key];
     }
 } // namespace NCompileTimeJsonParser

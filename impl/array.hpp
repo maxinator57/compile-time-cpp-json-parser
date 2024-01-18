@@ -51,7 +51,7 @@ namespace NCompileTimeJsonParser {
         return TGenericSerializedSequenceIterator::End(Data, LpCounter);
     }
 
-    constexpr auto TJsonArray::At(size_t idx) const -> TExpected<TJsonValue> {
+    constexpr auto TJsonArray::operator[](size_t idx) const -> TExpected<TJsonValue> {
         auto it = begin(), finish = end();
         auto counter = size_t{0};
         for (; it != finish && counter < idx; ++it, ++counter);
@@ -78,7 +78,7 @@ namespace NCompileTimeJsonParser {
         return HasValue() ? Value().end() : TJsonArray::Iterator{};
     } 
 
-    constexpr auto TExpected<TJsonArray>::At(size_t idx) const -> TExpected<TJsonValue> {
-        return HasValue() ? Value().At(idx) : Error();
+    constexpr auto TExpected<TJsonArray>::operator[](size_t idx) const -> TExpected<TJsonValue> {
+        return HasValue() ? Value()[idx] : Error();
     }
 }

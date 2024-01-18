@@ -22,7 +22,7 @@ namespace NCompileTimeJsonParser {
         friend class TJsonValue;
     public:
         constexpr auto GetData() const -> std::string_view;
-        constexpr auto At(size_t i) const -> TExpected<TJsonValue>;
+        constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>;
         struct Iterator;
         constexpr auto begin() const -> Iterator;
         constexpr auto end() const -> Iterator;
@@ -37,7 +37,7 @@ namespace NCompileTimeJsonParser {
     public:
         constexpr auto GetData() const -> std::string_view;
         constexpr auto GetLpCounter() const -> TLinePositionCounter;
-        constexpr auto At(std::string_view key) const -> TExpected<TJsonValue>;
+        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
         struct Iterator;
         constexpr auto begin() const -> Iterator;
         constexpr auto end() const -> Iterator;
@@ -51,10 +51,15 @@ namespace NCompileTimeJsonParser {
         constexpr TJsonValue(std::string_view, TLinePositionCounter = {});
         constexpr auto GetData() const -> std::string_view;
         constexpr auto GetLpCounter() const -> TLinePositionCounter;
+
         constexpr auto AsInt() const -> TExpected<Int>;
         constexpr auto AsDouble() const -> TExpected<Double>; 
         constexpr auto AsString() const -> TExpected<String>;
+
         constexpr auto AsArray() const -> TExpected<TJsonArray>;
+        constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>; // same effect as `.AsArray()[idx]`
+
         constexpr auto AsMapping() const -> TExpected<TJsonMapping>;
+        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>; // same effect as `.AsMapping()[idx]`
     }; 
 };

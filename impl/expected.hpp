@@ -67,7 +67,7 @@ namespace NCompileTimeJsonParser {
         // thanks to public inheritance
 
         // Monadic methods specific to TExpected<TJsonArray>:
-        constexpr auto At(size_t i) const -> TExpected<TJsonValue>;
+        constexpr auto operator[](size_t i) const -> TExpected<TJsonValue>;
         constexpr auto begin() const -> TJsonArray::Iterator;
         constexpr auto end() const -> TJsonArray::Iterator;
     };
@@ -81,7 +81,7 @@ namespace NCompileTimeJsonParser {
         // thanks to public inheritance
 
         // Monadic methods specific to TExpected<TJsonMapping>:
-        constexpr auto At(std::string_view key) const -> TExpected<TJsonValue>;
+        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
         constexpr auto begin() const -> TJsonMapping::Iterator;
         constexpr auto end() const -> TJsonMapping::Iterator;
     };
@@ -98,7 +98,11 @@ namespace NCompileTimeJsonParser {
         constexpr auto AsInt() const -> TExpected<Int>;
         constexpr auto AsDouble() const -> TExpected<Double>; 
         constexpr auto AsString() const -> TExpected<String>;
+
         constexpr auto AsArray() const -> TExpected<TJsonArray>;
+        constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>; // same effect as `.AsArray()[idx]`
+
         constexpr auto AsMapping() const -> TExpected<TJsonMapping>;
+        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>; // same effect as `.AsMapping()[key]`
     };
 }

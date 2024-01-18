@@ -47,15 +47,15 @@ auto TestBasicJsonValueParsing() -> void {
      
     {   // Array
         constexpr auto arr = TJsonValue{"[1, 2, 3]"}.AsArray();
-        static_assert(arr.At(0).AsInt() == 1);
-        static_assert(arr.At(1).AsInt() == 2);
-        static_assert(arr.At(2).AsInt() == 3);
+        static_assert(arr[0].AsInt() == 1);
+        static_assert(arr[1].AsInt() == 2);
+        static_assert(arr[2].AsInt() == 3);
     }
 
     {   // Mapping
         constexpr auto map = TJsonValue{"{\"aba\": 4, \"caba\": 5}"}.AsMapping();
-        static_assert(map.At("aba").AsInt() == 4);
-        static_assert(map.At("caba").AsInt() == 5);
+        static_assert(map["aba"].AsInt() == 4);
+        static_assert(map["caba"].AsInt() == 5);
     }
 }
 
@@ -79,7 +79,11 @@ auto TestComplexStructure() -> void {
 
     {   // Easily navigate a complex structure
         static_assert(
-            json.AsMapping().At("data").AsArray().At(1).AsMapping().At("x").AsInt() == 57
+            json.AsMapping()["data"].AsArray()[1].AsMapping()["x"].AsInt() == 57
+        );
+        // Same operations, shorter syntax:
+        static_assert(
+            json["data"][1]["x"].AsInt() == 57
         );
     }
 
@@ -87,9 +91,9 @@ auto TestComplexStructure() -> void {
         constexpr auto supportedCompilers = [json]() {
             auto compilerNames = std::array<std::string_view, 2>{};
             size_t i = 0;
-            constexpr auto compilersInfo = json.AsMapping().At("params").AsMapping().At("compilers").AsArray();
+            constexpr auto compilersInfo = json["params"]["compilers"].AsArray();
             for (auto&& info : compilersInfo) {
-                compilerNames[i] = info.AsMapping().At("name").AsString().Value();
+                compilerNames[i] = info["name"].AsString().Value();
                 ++i;
             }
             return compilerNames;
@@ -98,11 +102,11 @@ auto TestComplexStructure() -> void {
     }
 
     {   // Safely lookup in maps and arrays and continue without the need to check for errors on each level
-        constexpr auto wrongLookup = json.AsMapping().At("non-existent_key").AsArray().At(42).AsString();
+        constexpr auto wrongLookup = json["non-existent_key"][42].AsString();
         // It is enough to check for errors only at the very end:
         static_assert(wrongLookup.HasError());
 
-        constexpr auto rightLookup = json.AsMapping().At("params").AsMapping().At("cpp_standard").AsInt();
+        constexpr auto rightLookup = json["params"]["cpp_standard"].AsInt();
         static_assert(rightLookup.HasValue());
         // returns a `const int64_t&`
         static_assert(std::is_same_v<decltype(rightLookup.Value()), const int64_t&>);
@@ -146,14 +150,14 @@ auto TestBasicErrorHandling() -> void {
     }
 
     {   // Lookups made after the first time an error occurs keep the information about this error:
-        constexpr auto params = json.AsMapping().At("params").AsMapping();
+        constexpr auto params = json["params"].AsMapping();
         // No error yet:
         static_assert(!params.HasError()); // equivalent to params.HasValue():
         static_assert(params.HasValue());
 
         // Now perform some operations that would result in an error:
         constexpr auto wrongLookup =
-            params.At("interpreters").AsArray().At(0).AsMapping().At("name").AsString(); // "interpreters" is a wrong key
+            params["interpreters"][0]["name"].AsString(); // "interpreters" is a wrong key
         static_assert(wrongLookup.HasError());
         static_assert(wrongLookup.Error() == NError::TError{
             .BasicInfo = {
@@ -184,7 +188,7 @@ auto TestArray() -> void {
     // reading the first three arrays is fine:
     
     {   // Compute the sum of elements of the first array using `std::accumulate`:
-        constexpr auto zeroth = json.AsArray().At(0).AsArray();
+        constexpr auto zeroth = json[0].AsArray();
         constexpr auto zerothSum = std::accumulate(
             zeroth.begin(), zeroth.end(), 0,
             [](int sum, auto&& arrayElem){
@@ -196,10 +200,10 @@ auto TestArray() -> void {
     }
 
     {
-        constexpr auto first = json.AsArray().At(1).AsArray();
-        static_assert(first.At(0).AsInt() == 4);
-        static_assert(first.At(1).HasError());
-        static_assert(first.At(1).Error() == NError::TError{
+        constexpr auto first = json[1].AsArray();
+        static_assert(first[0].AsInt() == 4);
+        static_assert(first[1].HasError());
+        static_assert(first[1].Error() == NError::TError{
             .BasicInfo = {
                 .LineNumber = 2,
                 .Position = 4, // points at the start of the array (an opening square bracket ('['))
@@ -213,7 +217,7 @@ auto TestArray() -> void {
     }
 
     {
-        constexpr auto third = json.AsArray().At(3).AsArray();
+        constexpr auto third = json[3].AsArray();
         static_assert(third.HasError());
         // In fact, the error emitted in this example should rather be
         // "SyntaxError (a closing square bracket is probably missing
@@ -237,7 +241,7 @@ auto TestArray() -> void {
     // when invoking the `.At()` method:
     constexpr auto arr = json.AsArray();
     static_assert(arr.HasValue());
-    constexpr auto third = arr.At(3);
+    constexpr auto third = arr[3];
     static_assert(third.HasError());
     static_assert(third.Error() == NError::TError{
         .BasicInfo = {

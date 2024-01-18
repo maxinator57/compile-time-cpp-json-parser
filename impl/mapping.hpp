@@ -72,7 +72,7 @@ namespace NCompileTimeJsonParser {
         return TGenericSerializedSequenceIterator::End(Data, LpCounter);
     }
 
-    constexpr auto TJsonMapping::At(std::string_view key) const -> TExpected<TJsonValue> {
+    constexpr auto TJsonMapping::operator[](std::string_view key) const -> TExpected<TJsonValue> {
         auto it = begin();
         for (; it != end(); ++it) {
             auto [k, v] = *it;
@@ -95,9 +95,9 @@ namespace NCompileTimeJsonParser {
         return HasValue() ? Value().end() : TJsonMapping::Iterator{};
     }
 
-    constexpr auto TExpected<TJsonMapping>::At(
+    constexpr auto TExpected<TJsonMapping>::operator[](
         std::string_view key
     ) const -> TExpected<TJsonValue> {
-        return HasValue() ? Value().At(key) : Error();
+        return HasValue() ? Value()[key] : Error();
     }  
 } // namespace NCompileTimeJsonParser
