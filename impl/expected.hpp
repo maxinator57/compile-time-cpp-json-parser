@@ -68,6 +68,7 @@ namespace NCompileTimeJsonParser {
 
         // Monadic methods specific to TExpected<TJsonArray>:
         constexpr auto operator[](size_t i) const -> TExpected<TJsonValue>;
+        constexpr auto size() const -> TExpected<size_t>;
         constexpr auto begin() const -> TJsonArray::Iterator;
         constexpr auto end() const -> TJsonArray::Iterator;
     };
@@ -82,6 +83,7 @@ namespace NCompileTimeJsonParser {
 
         // Monadic methods specific to TExpected<TJsonMapping>:
         constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
+        constexpr auto size() const -> TExpected<size_t>;
         constexpr auto begin() const -> TJsonMapping::Iterator;
         constexpr auto end() const -> TJsonMapping::Iterator;
     };

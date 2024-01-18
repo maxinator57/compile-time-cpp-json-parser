@@ -2,6 +2,7 @@
 
 #include "line_position_counter.hpp"
 
+#include <cstddef>
 #include <string_view>
 
 
@@ -23,6 +24,7 @@ namespace NCompileTimeJsonParser {
     public:
         constexpr auto GetData() const -> std::string_view;
         constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>;
+        constexpr auto size() const -> size_t;
         struct Iterator;
         constexpr auto begin() const -> Iterator;
         constexpr auto end() const -> Iterator;
@@ -38,6 +40,7 @@ namespace NCompileTimeJsonParser {
         constexpr auto GetData() const -> std::string_view;
         constexpr auto GetLpCounter() const -> TLinePositionCounter;
         constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
+        constexpr auto size() const -> size_t;
         struct Iterator;
         constexpr auto begin() const -> Iterator;
         constexpr auto end() const -> Iterator;

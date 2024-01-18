@@ -145,7 +145,7 @@ auto TestBasicErrorHandling() -> void {
                 .Code = NError::ErrorCode::TypeError,
             },
             .AdditionalInfo = "either both square brackets are missing or the "
-                       "underlying data does not represent an array"
+                              "underlying data does not represent an array"
         });
     }
 

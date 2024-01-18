@@ -7,6 +7,7 @@
 #include "iterator.hpp"
 #include "line_position_counter.hpp"
 
+#include <cstddef>
 #include <string_view>
 
 
@@ -68,6 +69,12 @@ namespace NCompileTimeJsonParser {
             : *it;
     }
 
+    constexpr auto TJsonArray::size() const -> size_t {
+        auto counter = size_t{0};
+        for (auto&& _ : *this) ++counter;
+        return counter; 
+    }
+
     constexpr auto TExpected<TJsonArray>::begin() const -> TJsonArray::Iterator {
         // TODO: add error forwarding
         return HasValue() ? Value().begin() : TJsonArray::Iterator{};
@@ -80,5 +87,9 @@ namespace NCompileTimeJsonParser {
 
     constexpr auto TExpected<TJsonArray>::operator[](size_t idx) const -> TExpected<TJsonValue> {
         return HasValue() ? Value()[idx] : Error();
+    }
+
+    constexpr auto TExpected<TJsonArray>::size() const -> TExpected<size_t> {
+        return HasValue() ? TExpected<size_t>{Value().size()} : Error();
     }
 }

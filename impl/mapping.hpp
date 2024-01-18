@@ -87,6 +87,12 @@ namespace NCompileTimeJsonParser {
         );
     }
 
+    constexpr auto TJsonMapping::size() const -> size_t {
+        auto counter = size_t{0};
+        for (auto&& [_, __] : *this) ++counter;
+        return counter;
+    }
+
     constexpr auto TExpected<TJsonMapping>::begin() const -> TJsonMapping::Iterator {
         return HasValue() ? Value().begin() : TJsonMapping::Iterator{};
     }
@@ -99,5 +105,9 @@ namespace NCompileTimeJsonParser {
         std::string_view key
     ) const -> TExpected<TJsonValue> {
         return HasValue() ? Value()[key] : Error();
-    }  
+    }
+
+    constexpr auto TExpected<TJsonMapping>::size() const -> TExpected<size_t> {
+        return HasValue() ? TExpected<size_t>{Value().size()} : Error();
+    }
 } // namespace NCompileTimeJsonParser
