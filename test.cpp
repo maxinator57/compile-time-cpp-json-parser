@@ -1,63 +1,14 @@
-#include "impl/error.hpp"
 #include "parser.hpp"
 
+#include <cassert>
 #include <cstdlib>
 #include <iostream>
 #include <numeric>
 #include <string_view>
+#include <vector>
 
 
 using namespace NCompileTimeJsonParser;
-
-
-auto TestBasicJsonValueParsing() -> void { 
-    {   // Int
-        static_assert(TJsonValue{"12345"}.AsInt() == 12345);
-        static_assert(TJsonValue{"-54321"}.AsInt() == -54321);
-    }
-     
-    {   // Double
-        constexpr auto kEps = 1e-9;
-        static_assert(
-            std::abs(
-                TJsonValue{"12345.67891011"}.AsDouble().Value() - 12345.67891011
-            ) < kEps 
-        );
-        static_assert(
-            std::abs(
-                TJsonValue{"0.12131415"}.AsDouble().Value() - 0.12131415
-            ) < kEps
-        );
-        static_assert(
-            std::abs(
-                TJsonValue{"-16.17181920"}.AsDouble().Value() - (-16.17181920)
-            ) < kEps
-        );
-        static_assert(
-            std::abs(
-                TJsonValue{"12345"}.AsDouble().Value() - 12345
-            ) < kEps
-        );
-    }
-     
-    {   // String
-        static_assert(TJsonValue{"\"abacaba\""}.AsString() == "abacaba");
-        static_assert(TJsonValue{"\"\""}.AsString() == "");
-    }
-     
-    {   // Array
-        constexpr auto arr = TJsonValue{"[1, 2, 3]"}.AsArray();
-        static_assert(arr[0].AsInt() == 1);
-        static_assert(arr[1].AsInt() == 2);
-        static_assert(arr[2].AsInt() == 3);
-    }
-
-    {   // Mapping
-        constexpr auto map = TJsonValue{"{\"aba\": 4, \"caba\": 5}"}.AsMapping();
-        static_assert(map["aba"].AsInt() == 4);
-        static_assert(map["caba"].AsInt() == 5);
-    }
-}
 
 
 auto TestComplexStructure() -> void {
@@ -167,94 +118,15 @@ auto TestBasicErrorHandling() -> void {
             },
             .AdditionalInfo = NError::TMappingKeyNotFoundAdditionalInfo{"interpreters"},
                 // the requested key "interpreters" that doesn't exist in the mapping
-        });
-        std::cout << wrongLookup.Error() << "\n"; 
+        }); 
+        // std::cout << wrongLookup.Error() << "\n"; // uncomment and run to see what it prints
     }
 }
 
-auto TestArray() -> void {
-    constexpr auto json = TJsonValue{
-        /* line numbers: */
-        /* 0 */ "[                  \n"
-        /* 1 */ "    [1, 2, 3],   \n"
-        /* 2 */ "    [4],         \n"
-        /* 3 */ "    [5, 6],      \n"
-        /* 4 */ "    [7, 8, 9},   \n"
-        /* 5 */ "]                \n"
-    };
 
-    // Although we have a syntax error on line 4 (4-th array ends
-    // with a curly brace ('}') instead of square bracket (']')),
-    // reading the first three arrays is fine:
-    
-    {   // Compute the sum of elements of the first array using `std::accumulate`:
-        constexpr auto zeroth = json[0].AsArray();
-        constexpr auto zerothSum = std::accumulate(
-            zeroth.begin(), zeroth.end(), 0,
-            [](int sum, auto&& arrayElem){
-                return sum + arrayElem.AsInt().Value(); // unsafe to call `.Value()` without
-                                                        // checking for `.HasValue()` first,
-                                                        // but will do for a demo
-        });
-        static_assert(zerothSum == 6);
-    }
-
-    {
-        constexpr auto first = json[1].AsArray();
-        static_assert(first[0].AsInt() == 4);
-        static_assert(first[1].HasError());
-        static_assert(first[1].Error() == NError::TError{
-            .BasicInfo = {
-                .LineNumber = 2,
-                .Position = 4, // points at the start of the array (an opening square bracket ('['))
-                .Code = NError::ErrorCode::ArrayIndexOutOfRange,
-            },
-            .AdditionalInfo = NError::TArrayIndexOutOfRangeAdditionalInfo{
-                .Index = 1,
-                .ArrayLen = 1,
-            },
-        });
-    }
-
-    {
-        constexpr auto third = json[3].AsArray();
-        static_assert(third.HasError());
-        // In fact, the error emitted in this example should rather be
-        // "SyntaxError (a closing square bracket is probably missing
-        // at the end of an array)", but, due to the architecture of
-        // this json parser, it's virtually impossible for it to make
-        // such a guess. So we have to be content with at least some
-        // useful information in this case (although not particularly
-        // helpful)
-        static_assert(third.Error() == NError::TError{
-            .BasicInfo = {
-                .LineNumber = 4,
-                .Position = 12,
-                .Code = NError::ErrorCode::SyntaxError
-            },
-            .AdditionalInfo = "brackets mismatch: encountered an excess '}'",
-        });
-    }
-
-    // This error actually emerges not at the last step (when 
-    // calling `.AsArray()` for the second time), but rather
-    // when invoking the `.At()` method:
-    constexpr auto arr = json.AsArray();
-    static_assert(arr.HasValue());
-    constexpr auto third = arr[3];
-    static_assert(third.HasError());
-    static_assert(third.Error() == NError::TError{
-        .BasicInfo = {
-            .LineNumber = 4,
-            .Position = 12,
-            .Code = NError::ErrorCode::SyntaxError
-        },
-        .AdditionalInfo = "brackets mismatch: encountered an excess '}'",
-    });
-}
 
 
 auto main() -> int {
     TestBasicErrorHandling();
-    TestArray();
+    TestComplexStructure();
 }
