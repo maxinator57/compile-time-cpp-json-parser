@@ -89,7 +89,7 @@ namespace NCompileTimeJsonParser {
 
     constexpr auto TJsonMapping::size() const -> size_t {
         auto counter = size_t{0};
-        for (auto&& [_, __] : *this) ++counter;
+        for (auto it = begin(); it != end(); ++it, ++counter);
         return counter;
     }
 

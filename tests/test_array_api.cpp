@@ -58,7 +58,7 @@ auto TestArrayAPI() -> void {
         static_assert(json[2].AsString() == "fizz"); // remember that `arr == json.AsArray()`
     }
 
-    {   // Get the length of an array (works in O(length of underlying string data)):
+    {   // Get the length of an array (works in O({length of underlying string data})):
         auto vec = std::vector<int>{}; vec.reserve(arr.size().Value()); // have to call `.Value()` after calling `.size()`,
                                                                         // because the type of `arr` is not `TJsonArray`,
                                                                         // but `TExpected<TJsonArray>`

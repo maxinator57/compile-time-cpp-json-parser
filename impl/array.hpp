@@ -71,7 +71,7 @@ namespace NCompileTimeJsonParser {
 
     constexpr auto TJsonArray::size() const -> size_t {
         auto counter = size_t{0};
-        for (auto&& _ : *this) ++counter;
+        for (auto it = begin(); it != end(); ++it, ++counter);
         return counter; 
     }
 
