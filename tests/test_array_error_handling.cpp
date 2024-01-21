@@ -8,7 +8,7 @@
 using namespace NCompileTimeJsonParser;
 
 
-auto TestMultilevelArray() -> void {
+auto TestArrayErrorHandling() -> void {
     constexpr auto json = TJsonValue{
         /* line numbers: */
         /* 0 */ "[                  \n"

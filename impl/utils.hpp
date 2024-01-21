@@ -162,9 +162,8 @@ namespace NCompileTimeJsonParser::NUtils {
         if (pos == std::string_view::npos) return pos;
         {
             const auto result = FindFirstOfWithZeroBracketBalance(
-                str,
-                lpCounter,
-                [=](char ch) { return ch == delimiter; },
+                str, lpCounter,
+                [delimiter](char ch) { return ch == delimiter; },
                 pos
             );
             if (result.HasError()) return result;
@@ -173,8 +172,7 @@ namespace NCompileTimeJsonParser::NUtils {
         if (pos == std::string_view::npos) return pos;
         lpCounter.Process(str[pos]);
         return FindFirstOf(
-            str,
-            lpCounter,
+            str, lpCounter,
             [](char ch) { return !IsSpace(ch); },
             pos + 1
         );
@@ -187,9 +185,8 @@ namespace NCompileTimeJsonParser::NUtils {
         char delimiter = ','
     ) -> TExpected<std::string_view::size_type> {
         return FindFirstOfWithZeroBracketBalance(
-            str,
-            lpCounter,
-            [=](char ch) {
+            str, lpCounter,
+            [delimiter](char ch) {
                 return ch == delimiter || NUtils::IsSpace(ch);
             },
             pos

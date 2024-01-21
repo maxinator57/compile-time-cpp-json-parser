@@ -14,35 +14,43 @@ auto TestArrayAPI() -> void {
     constexpr auto json = TJsonValue{
         "[1, 2, \"fizz\", 4, \"buzz\", \"fizz\", 7, 8, \"fizz\", \"buzz\", 11, \"fizz\", 13, 14, \"fizzbuzz\"]"
     };
-
     // First, explicitly convert json to an array. Arrays don't have to be homogenous in their element type:
     constexpr auto arr = json.AsArray();
     static_assert(!arr.HasError());
 
-    // Iterate over json array in usual ways:
-    {   // Provides `.begin()` and `.end()` iterators of type `TJsonArray::Iterator`:
+    // Iterate over json arrays in usual ways:
+    {   // Provides `.begin()` and `.end()` iterators of type `TJsonArray::Iterator`,
+        // which is guranteed to be at least a `forward_iterator`:
         static_assert(std::forward_iterator<TJsonArray::Iterator>);
-        int sum = 0;
+
+        // For example, let's add up all elements of the array that are integers
+        // by manually iterating over them:
+        int sum = 0; 
         for (auto it = arr.begin(); it != arr.end(); ++it) {
-            auto elem = (*it).AsInt(); // the type of elem is `TExpected<Int>`
-            if (elem.HasValue()) sum += elem.Value(); // add up all elements that actually are integers
+            auto elem = (*it).AsInt(); // the type of `elem` is `TExpected<Int>`
+            if (elem.HasValue()) {    // check that the current element is an actual integer
+                sum += elem.Value();  // then safely take its value and add it to the sum
+            }
         }
         assert(sum == 60);
     }
-    {   // Use json arrays with regular range-based `for` loop:
+    {   // Do the same thing using a regular range-based `for` loop:
         int sum = 0;
         for (auto&& elem : arr) if (auto x = elem.AsInt(); x.HasValue()) sum += x.Value();
         assert(sum == 60);
     }
-    {   // Use json arrays with c++20 ranges:
+    {   // Do the same thing using c++20 ranges:
+    #if !defined (__clang__) && defined (__GNUG__)
         auto processedArr = arr
             | std::ranges::views::transform([](auto&& elem) { return elem.AsInt(); })
             | std::ranges::views::filter([](auto&& maybeInt) { return maybeInt.HasValue(); })
             | std::ranges::views::transform([](auto&& definitelyInt) { return definitelyInt.Value(); });
         const auto sum = std::accumulate(processedArr.begin(), processedArr.end(), 0);
         assert(sum == 60);
+    #endif
     }
-    {   // All array operations are `constexpr` hence can be used at compile time:
+    {   // Do the same thing at compile time using `std::accumulate`
+        // with custom addition operation:
         constexpr auto sum = std::accumulate(
             arr.begin(), arr.end(), 0,
             [](int curSum, auto&& elem) {
@@ -54,11 +62,11 @@ auto TestArrayAPI() -> void {
  
     {   // Get an element by index:
         static_assert(arr[2].AsString() == "fizz");
-        // Same thing without explicitly casting json value to array:
+        // Same thing without explicitly casting json to array:
         static_assert(json[2].AsString() == "fizz"); // remember that `arr == json.AsArray()`
     }
 
-    {   // Get the length of an array (works in O({length of underlying string data})):
+    {   // Get the number of elements in an array (works in O({length of underlying string data})):
         auto vec = std::vector<int>{}; vec.reserve(arr.size().Value()); // have to call `.Value()` after calling `.size()`,
                                                                         // because the type of `arr` is not `TJsonArray`,
                                                                         // but `TExpected<TJsonArray>`
@@ -68,9 +76,10 @@ auto TestArrayAPI() -> void {
         }
         assert((vec == std::vector{1, 2, 4, 7, 8, 11, 13, 14}));
 
-        // Can do the same thing with containers the size of which has to be known at compile time:
+        // Can be useful when dealing with containers the size of which has to be known at compile time:
+        #if !defined (__clang__) && defined (__GNUG__)
         struct {
-            // size of `Data` has to be a compile-time constant
+            // size of a `std::array` has to be a compile-time constant
             std::array<int, arr.size().Value()> Data = {}; // initialized with zeros
             size_t Counter = 0;
             auto push(int x) -> bool {
@@ -88,9 +97,10 @@ auto TestArrayAPI() -> void {
         }
         int bufSum = std::accumulate(buf.Data.begin(), buf.Data.end(), 0);
         assert(bufSum == 60);
+        #endif
     }
 
-    {   // This works, but is NOT efficient, as it works in
+    {   // This works, but is NOT efficient, as it runs in
         // O({length of underlying string data} * {number of elements in the array})
         int sum = 0;
         for (size_t i = 0; i != arr.size().Value(); ++i) {

@@ -66,7 +66,7 @@ namespace NCompileTimeJsonParser {
         // Other mixin methods are available
         // thanks to public inheritance
 
-        // Monadic methods specific to TExpected<TJsonArray>:
+        // Monadic methods specific to `TExpected<TJsonArray>`:
         constexpr auto operator[](size_t i) const -> TExpected<TJsonValue>;
         constexpr auto size() const -> TExpected<size_t>;
         constexpr auto begin() const -> TJsonArray::Iterator;
@@ -81,7 +81,7 @@ namespace NCompileTimeJsonParser {
         // Other mixin methods are available
         // thanks to public inheritance
 
-        // Monadic methods specific to TExpected<TJsonMapping>:
+        // Monadic methods specific to `TExpected<TJsonMapping>`:
         constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
         constexpr auto size() const -> TExpected<size_t>;
         constexpr auto begin() const -> TJsonMapping::Iterator;
@@ -96,7 +96,7 @@ namespace NCompileTimeJsonParser {
         // Other mixin methods are available
         // thanks to public inheritance
 
-        // Monadic methods specific to TExpected<TJsonValue>:
+        // Monadic methods specific to `TExpected<TJsonValue>`:
         constexpr auto AsInt() const -> TExpected<Int>;
         constexpr auto AsDouble() const -> TExpected<Double>; 
         constexpr auto AsString() const -> TExpected<String>;

@@ -7,7 +7,8 @@
 
 namespace NCompileTimeJsonParser {
     struct TLinePositionCounter {
-        uint16_t LineNumber = 0;
+        bool CanStepBack : 1 = false;
+        uint16_t LineNumber : 15 = 0;
         uint16_t Position = 0;
         uint16_t PrevPosition = 0;
 
@@ -17,6 +18,7 @@ namespace NCompileTimeJsonParser {
 
         constexpr auto Process(char ch) noexcept -> TLinePositionCounter& {
             PrevPosition = Position;
+            CanStepBack = true;
             if (ch == '\n') {
                 ++LineNumber;
                 Position = 0;
@@ -32,8 +34,10 @@ namespace NCompileTimeJsonParser {
 
         // Can only revert one last operation
         constexpr auto StepBack() noexcept -> TLinePositionCounter& {
+            if (!CanStepBack) return *this;
             if (Position == 0 && LineNumber != 0) --LineNumber;
             Position = PrevPosition;
+            CanStepBack = false;
             return *this;
         }
     };

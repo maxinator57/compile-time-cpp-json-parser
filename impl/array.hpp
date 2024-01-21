@@ -22,9 +22,8 @@ namespace NCompileTimeJsonParser {
         TGenericSerializedSequenceIterator Iter;
         friend class TJsonArray;
     private:
-        constexpr Iterator(
-            TGenericSerializedSequenceIterator&& iter
-        ) : Iter(std::move(iter)) {}
+        constexpr Iterator(TGenericSerializedSequenceIterator&& iter)
+            : Iter(std::move(iter)) {}
 
     public:
         using difference_type = int;
@@ -64,8 +63,7 @@ namespace NCompileTimeJsonParser {
                 NError::TArrayIndexOutOfRangeAdditionalInfo{
                     .Index = idx,
                     .ArrayLen = counter
-                }
-            )
+                })
             : *it;
     }
 

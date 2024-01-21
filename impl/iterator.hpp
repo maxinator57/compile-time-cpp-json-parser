@@ -20,7 +20,7 @@ namespace NCompileTimeJsonParser {
         TLinePositionCounter ElemEndLpCounter;
         std::string_view::size_type CurElemBegPos;
         std::string_view::size_type CurElemEndPos;
-        std::optional<NError::TError> ErrorOpt; 
+        std::optional<NError::TError> ErrorOpt;
     private:
         constexpr auto SetError(NError::TError&& err) -> void {
             CurElemBegPos = std::string_view::npos;

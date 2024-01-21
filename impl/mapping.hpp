@@ -11,18 +11,12 @@
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonMapping::TJsonMapping(
-        std::string_view data,
-        TLinePositionCounter lpCounter
-    ) : Data(data), LpCounter(lpCounter) {}
+    constexpr TJsonMapping::TJsonMapping(std::string_view data, TLinePositionCounter lpCounter)
+        : Data(data), LpCounter(lpCounter) {}
 
-    constexpr auto TJsonMapping::GetData() const -> std::string_view {
-        return Data;
-    }
+    constexpr auto TJsonMapping::GetData() const -> std::string_view { return Data; }
 
-    constexpr auto TJsonMapping::GetLpCounter() const -> TLinePositionCounter {
-        return LpCounter;
-    }
+    constexpr auto TJsonMapping::GetLpCounter() const -> TLinePositionCounter { return LpCounter; }
 
     class TJsonMapping::Iterator {
     private:
@@ -30,9 +24,10 @@ namespace NCompileTimeJsonParser {
         TGenericSerializedSequenceIterator ValIter;
         friend class TJsonMapping;
     private:
-        constexpr Iterator(
-            TGenericSerializedSequenceIterator&& iter
-        ) : KeyIter(std::move(iter)), ValIter(KeyIter) {
+        constexpr Iterator(TGenericSerializedSequenceIterator&& iter)
+            : KeyIter(std::move(iter))
+            , ValIter(KeyIter)
+        {
             ValIter.StepForward(':', ',');
         }
 

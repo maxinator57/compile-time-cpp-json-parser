@@ -66,15 +66,14 @@ namespace NCompileTimeJsonParser::NError {
     }
 
     struct TMappingKeyNotFoundAdditionalInfo {
-        // Null-terminated array of bytes
+        // Just a null-terminated array of bytes
     private:
-        static constexpr size_t kMaxLenToSave = []() -> size_t {
-            return 16;
-        }();
-        std::array<char, kMaxLenToSave> RequestedKey = {}; // initialized with zeros,
-                                                           // hence the invariant that
-                                                           // RequestedKey is null-terminated
-                                                           // always holds
+        static constexpr size_t kMaxLenToSave = 15;
+        std::array<char, kMaxLenToSave + 1> RequestedKey = {}; // initialized with zeros,
+                                                               // hence the invariant that
+                                                               // `RequestedKey` is null-terminated
+                                                               // always holds
+        using TSelf = TMappingKeyNotFoundAdditionalInfo;
     public:
         constexpr auto GetRequestedKey() const -> decltype((RequestedKey)) {
             return RequestedKey;
@@ -85,13 +84,11 @@ namespace NCompileTimeJsonParser::NError {
             // containing json data from the parsing of which this error emerged
             std::copy_n(
                 key.begin(),
-                std::min(key.size(), RequestedKey.size() - 1),
+                std::min(key.size(), kMaxLenToSave),
                 RequestedKey.begin()
             );
         }
-        constexpr auto operator==(
-            const TMappingKeyNotFoundAdditionalInfo& other
-        ) const -> bool = default;
+        constexpr auto operator==(const TSelf& other) const -> bool = default;
     };
     template <class TOstream>
     constexpr auto operator<<(
@@ -111,14 +108,12 @@ namespace NCompileTimeJsonParser::NError {
             ErrorCode Code;
             constexpr auto operator==(const TBasicInfo& other) const -> bool = default;
         } BasicInfo;
-        using TAdditionalInfoBase = std::variant<
+        using TAdditionalInfo = std::variant<
             std::string_view,
             TArrayIndexOutOfRangeAdditionalInfo,
             TMappingKeyNotFoundAdditionalInfo
         >;
-        struct TAdditionalInfo : public TAdditionalInfoBase {
-            using TAdditionalInfoBase::variant;
-        } AdditionalInfo;
+        TAdditionalInfo AdditionalInfo;
         constexpr auto operator==(const TError& other) const -> bool = default;
     };
 
@@ -140,22 +135,6 @@ namespace NCompileTimeJsonParser::NError {
             .AdditionalInfo = additionalInfo,
         };
     }
-    // // Explicit overload for const char*
-    // // Should only be used with static strings
-    // constexpr auto Error(
-    //     TLinePositionCounter lpCounter,
-    //     ErrorCode code,
-    //     const char* message
-    // ) -> TError {
-    //     return {
-    //         .BasicInfo = {
-    //             .LineNumber = lpCounter.LineNumber,
-    //             .Position = lpCounter.Position,
-    //             .Code = code,
-    //         },
-    //         .AdditionalInfo = std::string_view{message},
-    //     };
-    // }
     
     template <class TOstream>
     constexpr auto operator<<(TOstream& out, const TError::TAdditionalInfo& info) -> TOstream& {
