@@ -4,24 +4,14 @@
 #include "api.hpp"
 #include "error.hpp"
 #include "expected.hpp"
-#include "line_position_counter.hpp"
 #include "utils.hpp"
 
 #include <string_view>
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonValue::TJsonValue(
-        std::string_view data,
-        TLinePositionCounter lpCounter
-    ) : Data(NUtils::StripSpaces(data)), LpCounter(lpCounter) {}
-
-    constexpr auto TJsonValue::GetData() const -> std::string_view {
-        return Data;
-    }
-    constexpr auto TJsonValue::GetLpCounter() const -> TLinePositionCounter {
-        return LpCounter;
-    }
+    constexpr TJsonValue::TJsonValue(const std::string_view& data, const TLinePositionCounter& lpCounter)
+        : TDataHolderMixin(NUtils::StripSpaces(data), lpCounter) {}
 
     constexpr auto TJsonValue::AsInt() const -> TExpected<int64_t> {
         if (Data.empty()) return Error(

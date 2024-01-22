@@ -11,12 +11,8 @@
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonMapping::TJsonMapping(std::string_view data, TLinePositionCounter lpCounter)
-        : Data(data), LpCounter(lpCounter) {}
-
-    constexpr auto TJsonMapping::GetData() const -> std::string_view { return Data; }
-
-    constexpr auto TJsonMapping::GetLpCounter() const -> TLinePositionCounter { return LpCounter; }
+    constexpr TJsonMapping::TJsonMapping(const std::string_view& data, const TLinePositionCounter& lpCounter)
+        : TDataHolderMixin(data, lpCounter) {}
 
     class TJsonMapping::Iterator {
     private:

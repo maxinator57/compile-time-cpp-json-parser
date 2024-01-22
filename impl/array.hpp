@@ -3,19 +3,15 @@
 
 #include "api.hpp"
 #include "error.hpp"
-#include "expected.hpp"
 #include "iterator.hpp"
-#include "line_position_counter.hpp"
 
 #include <cstddef>
 #include <string_view>
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonArray::TJsonArray(std::string_view data, TLinePositionCounter lpCounter)
-        : Data(data), LpCounter(lpCounter) {}
-
-    constexpr auto TJsonArray::GetData() const -> std::string_view { return Data; }
+    constexpr TJsonArray::TJsonArray(const std::string_view& data, const TLinePositionCounter& lpCounter)
+        : TDataHolderMixin(data, lpCounter) {}
 
     class TJsonArray::Iterator {
     private:

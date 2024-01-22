@@ -1,62 +1,54 @@
 #pragma once
 
-#include "line_position_counter.hpp"
+#include "data_holder.hpp"
 
 #include <cstddef>
 #include <string_view>
 
 
-namespace NCompileTimeJsonParser {  
-    class TJsonValue;
-
+namespace NCompileTimeJsonParser {
     template <class T> struct TExpected;
+
+    // JSON types:
+    
+    class TJsonValue;
 
     using Int = int64_t;
     using Double = double;
     using String = std::string_view;
 
-    class TJsonArray {
+    class TJsonArray : public TDataHolderMixin {
     private:
-        std::string_view Data;
-        TLinePositionCounter LpCounter;
-        constexpr TJsonArray(std::string_view, TLinePositionCounter);
+        constexpr TJsonArray(const std::string_view&, const TLinePositionCounter&);
         friend class TJsonValue;
     public:
-        constexpr auto GetData() const -> std::string_view;
         constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>;
         constexpr auto size() const -> size_t;
+
         class Iterator;
         constexpr auto begin() const -> Iterator;
         constexpr auto end() const -> Iterator;
     };
 
-    class TJsonMapping {
+    class TJsonMapping : public TDataHolderMixin {
     private:
-        std::string_view Data;
-        TLinePositionCounter LpCounter;
-        constexpr TJsonMapping(std::string_view, TLinePositionCounter);
+        constexpr TJsonMapping(const std::string_view&, const TLinePositionCounter&);
         friend class TJsonValue;
     public:
-        constexpr auto GetData() const -> std::string_view;
-        constexpr auto GetLpCounter() const -> TLinePositionCounter;
         constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
         constexpr auto size() const -> size_t;
+
         class Iterator;
         constexpr auto begin() const -> Iterator;
         constexpr auto end() const -> Iterator;
     }; 
 
-    class TJsonValue {
-    private:
-        std::string_view Data;
-        TLinePositionCounter LpCounter;
+    class TJsonValue : public TDataHolderMixin {
     public:
-        constexpr TJsonValue(std::string_view, TLinePositionCounter = {});
-        constexpr auto GetData() const -> std::string_view;
-        constexpr auto GetLpCounter() const -> TLinePositionCounter;
+        constexpr TJsonValue(const std::string_view&, const TLinePositionCounter& = {});
 
         constexpr auto AsInt() const -> TExpected<Int>;
-        constexpr auto AsDouble() const -> TExpected<Double>; 
+        constexpr auto AsDouble() const -> TExpected<Double>;
         constexpr auto AsString() const -> TExpected<String>;
 
         constexpr auto AsArray() const -> TExpected<TJsonArray>;

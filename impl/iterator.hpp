@@ -15,6 +15,7 @@ namespace NCompileTimeJsonParser {
     class TGenericSerializedSequenceIterator {
     private:
         using TSelf = TGenericSerializedSequenceIterator;
+    private:
         std::string_view Data; 
         TLinePositionCounter ElemBegLpCounter;
         TLinePositionCounter ElemEndLpCounter;
