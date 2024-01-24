@@ -53,9 +53,9 @@ namespace NCompileTimeJsonParser::NUtils {
         return kSpaces.find(ch) != std::string_view::npos;
     }
     constexpr auto StripSpaces(std::string_view str) -> std::string_view {
-        auto start = str.find_first_not_of(kSpaces);
+        const auto start = str.find_first_not_of(kSpaces);
         if (start == std::string_view::npos) return {};
-        auto end = str.find_last_not_of(kSpaces);
+        const auto end = str.find_last_not_of(kSpaces);
         return str.substr(start, end - start + 1);
     }
 

@@ -39,7 +39,7 @@ auto TestArrayAPI() -> void {
         for (auto&& elem : arr) if (auto x = elem.AsInt(); x.HasValue()) sum += x.Value();
         assert(sum == 60);
     }
-    {   // Do the same thing using c++20 ranges:
+    {   // Do the same thing using c++20 ranges (for some reason doesn't compile on clang):
     #if !defined (__clang__) && defined (__GNUG__)
         auto processedArr = arr
             | std::ranges::views::transform([](auto&& elem) { return elem.AsInt(); })
@@ -77,7 +77,7 @@ auto TestArrayAPI() -> void {
         assert((vec == std::vector{1, 2, 4, 7, 8, 11, 13, 14}));
 
         // Can be useful when dealing with containers the size of which has to be known at compile time:
-        #if !defined (__clang__) && defined (__GNUG__)
+        #if !defined (__clang__) && defined (__GNUG__) // doesn't compile on clang
         struct {
             // size of a `std::array` has to be a compile-time constant
             std::array<int, arr.size().Value()> Data = {}; // initialized with zeros

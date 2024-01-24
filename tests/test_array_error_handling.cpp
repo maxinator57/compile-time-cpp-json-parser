@@ -11,7 +11,7 @@ using namespace NCompileTimeJsonParser;
 auto TestArrayErrorHandling() -> void {
     constexpr auto json = TJsonValue{
         /* line numbers: */
-        /* 0 */ "[                  \n"
+        /* 0 */ "[                \n"
         /* 1 */ "    [1, 2, 3],   \n"
         /* 2 */ "    [4],         \n"
         /* 3 */ "    [5, 6],      \n"
@@ -38,7 +38,8 @@ auto TestArrayErrorHandling() -> void {
     {
         constexpr auto first = json[1].AsArray();
         static_assert(first[0].AsInt() == 4);
-        static_assert(first[1].HasError());
+        static_assert(first[1].HasError()); // index 1 is out of range for the array `[4]`
+        // As shown by error message:
         static_assert(first[1].Error() == NError::TError{
             .BasicInfo = {
                 .LineNumber = 2,

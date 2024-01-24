@@ -126,10 +126,10 @@ namespace NCompileTimeJsonParser {
                 ElemBegLpCounter,
                 NError::ErrorCode::IteratorDereferenceError
             );
-            return TJsonValue(
+            return TJsonValue{
                 Data.substr(CurElemBegPos, CurElemEndPos - CurElemBegPos),
                 ElemBegLpCounter
-            );
+            };
         }
 
         constexpr auto operator==(const TSelf& other) const -> bool {
