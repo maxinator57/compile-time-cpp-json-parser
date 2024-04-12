@@ -61,19 +61,17 @@ namespace NCompileTimeJsonParser {
                 CurElemEndPos = std::string_view::npos;
                 return;
             }
-            {
-                auto nextPosOrErr = NUtils::FindCurElementEndPos(
-                    Data,
-                    ElemEndLpCounter,
-                    CurElemBegPos,
-                    delimiter
-                );
-                if (nextPosOrErr.HasError()) {
-                    SetError(std::move(nextPosOrErr.Error()));
-                    return;
-                }
-                CurElemEndPos = nextPosOrErr.Value();
+            auto nextPosOrErr = NUtils::FindCurElementEndPos(
+                Data,
+                ElemEndLpCounter,
+                CurElemBegPos,
+                delimiter
+            );
+            if (nextPosOrErr.HasError()) {
+                SetError(std::move(nextPosOrErr.Error()));
+                return;
             }
+            CurElemEndPos = nextPosOrErr.Value();
         }
 
         static constexpr auto Begin(

@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include "data_holder.hpp"
 
 #include <cstddef>
@@ -19,7 +20,7 @@ namespace NCompileTimeJsonParser {
 
     class TJsonArray : public TDataHolderMixin {
     private:
-        constexpr TJsonArray(const std::string_view&, const TLinePositionCounter&);
+        constexpr TJsonArray(std::string_view, const TLinePositionCounter&);
         friend class TJsonValue;
     public:
         constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>;
@@ -32,7 +33,7 @@ namespace NCompileTimeJsonParser {
 
     class TJsonMapping : public TDataHolderMixin {
     private:
-        constexpr TJsonMapping(const std::string_view&, const TLinePositionCounter&);
+        constexpr TJsonMapping(std::string_view, const TLinePositionCounter&);
         friend class TJsonValue;
     public:
         constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
@@ -45,7 +46,7 @@ namespace NCompileTimeJsonParser {
 
     class TJsonValue : public TDataHolderMixin {
     public:
-        constexpr TJsonValue(const std::string_view&, const TLinePositionCounter& = {});
+        constexpr TJsonValue(std::string_view, const TLinePositionCounter& = {});
 
         constexpr auto AsInt() const -> TExpected<Int>;
         constexpr auto AsDouble() const -> TExpected<Double>;

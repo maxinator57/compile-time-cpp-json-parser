@@ -36,8 +36,7 @@ namespace NCompileTimeJsonParser::NError {
             case CompileTimeStackCapacityExceededError:
                 return "\"compile-time stack capacity exceeded\" error";
         }
-        return {}; // to get rid of compiler warning
-    }; 
+    };
     template <class TOstream>
     constexpr auto operator<<(TOstream& out, ErrorCode code) -> TOstream& {
         out << ToStr(code);

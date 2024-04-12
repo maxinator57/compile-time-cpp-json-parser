@@ -8,16 +8,17 @@
 
 
 namespace NCompileTimeJsonParser {
+    // A mixin class template which provides some convenient operations
+    // like those of c++23 `std::expected<T, E>`, but with E = `NError::TError`.
     template <class T>
     struct TExpectedMixin : private std::variant<T, NError::TError> {
-        template <class U>
-        constexpr TExpectedMixin(U&& value)
-            : std::variant<T, NError::TError>(std::forward<U>(value))
-        {
-        } 
+        template <class... Args>
+        constexpr TExpectedMixin(Args&&... args)
+            : std::variant<T, NError::TError>(std::forward<Args>(args)...) {}
 
         // Common methods for (simplified)
         // c++23 std::expected-like types:
+
         constexpr auto HasValue() const noexcept -> bool {
             return std::holds_alternative<T>(*this);
         }
@@ -49,22 +50,22 @@ namespace NCompileTimeJsonParser {
         // }
     };
 
+    // The general `TExpected` template
     template <class T>
     struct TExpected : public TExpectedMixin<T> {
-        // Bring constructor from mixin to class scope:
+        // Bring constructor from mixin to class scope
         using TExpectedMixin<T>::TExpectedMixin;
 
-        // Other mixin methods are available
-        // thanks to public inheritance
+        // Other mixin methods are available thanks to public inheritance
     };
 
+    // The specialization of `TExpected` class template for `TJsonArray`
     template <>
     struct TExpected<TJsonArray> : public TExpectedMixin<TJsonArray> {
         // Bring constructor from mixin to class scope:
         using TExpectedMixin<TJsonArray>::TExpectedMixin;
 
-        // Other mixin methods are available
-        // thanks to public inheritance
+        // Other mixin methods are available thanks to public inheritance
 
         // Monadic methods specific to `TExpected<TJsonArray>`:
         constexpr auto operator[](size_t i) const -> TExpected<TJsonValue>;
@@ -73,13 +74,13 @@ namespace NCompileTimeJsonParser {
         constexpr auto end() const -> TJsonArray::Iterator;
     };
 
+    // The specialization of `TExpected` class template for `TJsonMapping`
     template <>
     struct TExpected<TJsonMapping> : public TExpectedMixin<TJsonMapping> {
         // Bring constructor from mixin to class scope:
         using TExpectedMixin<TJsonMapping>::TExpectedMixin;
 
-        // Other mixin methods are available
-        // thanks to public inheritance
+        // Other mixin methods are available thanks to public inheritance
 
         // Monadic methods specific to `TExpected<TJsonMapping>`:
         constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
@@ -88,13 +89,13 @@ namespace NCompileTimeJsonParser {
         constexpr auto end() const -> TJsonMapping::Iterator;
     };
 
+    // The specialization of `TExpected` class template for `TJsonValue`
     template <>
     struct TExpected<TJsonValue> : public TExpectedMixin<TJsonValue> {
         // Bring constructor from mixin to class scope:
         using TExpectedMixin<TJsonValue>::TExpectedMixin;
 
-        // Other mixin methods are available
-        // thanks to public inheritance
+        // Other mixin methods are available thanks to public inheritance
 
         // Monadic methods specific to `TExpected<TJsonValue>`:
         constexpr auto AsInt() const -> TExpected<Int>;

@@ -10,7 +10,7 @@
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonArray::TJsonArray(const std::string_view& data, const TLinePositionCounter& lpCounter)
+    constexpr TJsonArray::TJsonArray(std::string_view data, const TLinePositionCounter& lpCounter)
         : TDataHolderMixin(data, lpCounter) {}
 
     class TJsonArray::Iterator {

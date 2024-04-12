@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <numeric>
-#include <queue>
 #include <ranges>
 #include <vector>
 
@@ -42,9 +41,9 @@ auto TestArrayAPI() -> void {
     {   // Do the same thing using c++20 ranges (for some reason doesn't compile on clang):
     #if !defined (__clang__) && defined (__GNUG__)
         auto processedArr = arr
-            | std::ranges::views::transform([](auto&& elem) { return elem.AsInt(); })
-            | std::ranges::views::filter([](auto&& maybeInt) { return maybeInt.HasValue(); })
-            | std::ranges::views::transform([](auto&& definitelyInt) { return definitelyInt.Value(); });
+            | std::views::transform([](auto&& elem) { return elem.AsInt(); })
+            | std::views::filter([](auto&& maybeInt) { return maybeInt.HasValue(); })
+            | std::views::transform([](auto&& definitelyInt) { return definitelyInt.Value(); });
         const auto sum = std::accumulate(processedArr.begin(), processedArr.end(), 0);
         assert(sum == 60);
     #endif

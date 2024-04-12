@@ -11,7 +11,7 @@
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonMapping::TJsonMapping(const std::string_view& data, const TLinePositionCounter& lpCounter)
+    constexpr TJsonMapping::TJsonMapping(std::string_view data, const TLinePositionCounter& lpCounter)
         : TDataHolderMixin(data, lpCounter) {}
 
     class TJsonMapping::Iterator {
@@ -37,9 +37,10 @@ namespace NCompileTimeJsonParser {
         constexpr Iterator() : Iterator(TGenericSerializedSequenceIterator::End({}, {})) {};
         constexpr auto operator*() const -> value_type {
             // TODO: improve error handling here (return more specific errors when possible)
-            auto k = (*KeyIter).AsString();
-            auto v = *ValIter;
-            return {.Key = k, .Value = v};
+            return {
+                .Key = (*KeyIter).AsString(),
+                .Value = *ValIter,
+            };
         }
         constexpr auto operator++() -> Iterator& {
             if (KeyIter.IsEnd()) return *this;

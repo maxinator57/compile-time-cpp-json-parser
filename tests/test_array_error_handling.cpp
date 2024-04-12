@@ -54,11 +54,11 @@ auto TestArrayErrorHandling() -> void {
     }
 
     {
-        constexpr auto secondArr = json[2].AsArray();
-        auto vec = std::vector<int>{}; vec.reserve(secondArr.size().Value()); // need to call `.Value()`,
-                                                                              // because `secondArr` has type TExpected<TArray>,
+        constexpr auto second = json[2].AsArray();
+        auto vec = std::vector<int>{}; vec.reserve(second.size().Value()); // need to call `.Value()`,
+                                                                              // because `secondArr` has type `TExpected<TArray>`,
                                                                               // not just `TArray`
-        for (auto&& elem : secondArr) {
+        for (auto&& elem : second) {
             vec.push_back(elem.AsInt().Value());
         }
         assert((vec == std::vector{5, 6}));

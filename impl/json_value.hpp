@@ -10,7 +10,7 @@
 
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonValue::TJsonValue(const std::string_view& data, const TLinePositionCounter& lpCounter)
+    constexpr TJsonValue::TJsonValue(std::string_view data, const TLinePositionCounter& lpCounter)
         : TDataHolderMixin(NUtils::StripSpaces(data), lpCounter) {}
 
     constexpr auto TJsonValue::AsInt() const -> TExpected<int64_t> {

@@ -4,15 +4,17 @@
 using Test = auto () -> void;
 
 
-Test TestBasicValueParsing;
 Test TestArrayAPI;
 Test TestArrayErrorHandling;
+Test TestBasicValueParsing;
+Test TestComplexStructure;
 
 
 auto main() -> int {
-    TestBasicValueParsing();
     TestArrayAPI();
-    TestArrayErrorHandling();
+    TestArrayErrorHandling(); 
+    TestBasicValueParsing();
+    TestComplexStructure();
 
     std::cout << "All tests passed!\n";
 }
