@@ -17,10 +17,10 @@ namespace NCompileTimeJsonParser {
     private:
         TGenericSerializedSequenceIterator Iter;
         friend class TJsonArray;
+        friend class TExpected<TJsonArray>;
     private:
         constexpr Iterator(TGenericSerializedSequenceIterator&& iter)
             : Iter(std::move(iter)) {}
-
     public:
         using difference_type = int;
         using value_type = TExpected<TJsonValue>;
@@ -70,13 +70,11 @@ namespace NCompileTimeJsonParser {
     }
 
     constexpr auto TExpected<TJsonArray>::begin() const -> TJsonArray::Iterator {
-        // TODO: add error forwarding
-        return HasValue() ? Value().begin() : TJsonArray::Iterator{};
+        return HasValue() ? Value().begin() : TJsonArray::Iterator{Error()};
     }
 
     constexpr auto TExpected<TJsonArray>::end() const -> TJsonArray::Iterator {
-        // TODO: add error forwarding
-        return HasValue() ? Value().end() : TJsonArray::Iterator{};
+        return HasValue() ? Value().end() : TJsonArray::Iterator{Error()};
     } 
 
     constexpr auto TExpected<TJsonArray>::operator[](size_t idx) const -> TExpected<TJsonValue> {

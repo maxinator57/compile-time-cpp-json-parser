@@ -16,18 +16,17 @@ namespace NCompileTimeJsonParser {
     private:
         using TSelf = TGenericSerializedSequenceIterator;
     private:
-        std::string_view Data; 
-        TLinePositionCounter ElemBegLpCounter;
-        TLinePositionCounter ElemEndLpCounter;
-        std::string_view::size_type CurElemBegPos;
-        std::string_view::size_type CurElemEndPos;
-        std::optional<NError::TError> ErrorOpt;
+        std::string_view Data = {};
+        std::string_view::size_type CurElemBegPos = {};
+        std::string_view::size_type CurElemEndPos = {}; 
+        std::optional<NError::TError> ErrorOpt = {};
+        TLinePositionCounter ElemBegLpCounter = {};
+        TLinePositionCounter ElemEndLpCounter = {};
     private:
         constexpr auto SetError(NError::TError&& err) -> void {
             CurElemBegPos = std::string_view::npos;
             ErrorOpt.emplace(std::move(err));
         }
-
     public:
         constexpr auto IsEnd() const -> bool {
             return CurElemBegPos == std::string_view::npos;
@@ -73,6 +72,9 @@ namespace NCompileTimeJsonParser {
             }
             CurElemEndPos = nextPosOrErr.Value();
         }
+
+        constexpr TGenericSerializedSequenceIterator(NError::TError err)
+            : CurElemBegPos(std::string_view::npos), ErrorOpt(std::move(err)) {}
 
         static constexpr auto Begin(
             std::string_view data,
