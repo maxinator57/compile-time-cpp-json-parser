@@ -48,11 +48,10 @@ namespace NCompileTimeJsonParser::NError {
     }
 
     struct TArrayIndexOutOfRangeAdditionalInfo {
+        using TSelf = TArrayIndexOutOfRangeAdditionalInfo;
         size_t Index =  0;
         size_t ArrayLen = 0;
-        constexpr auto operator==(
-            const TArrayIndexOutOfRangeAdditionalInfo& other
-        ) const -> bool = default;
+        constexpr auto operator==(const TSelf& other) const -> bool = default;
     };
     template <class TOstream>
     constexpr auto operator<<(
@@ -88,8 +87,9 @@ namespace NCompileTimeJsonParser::NError {
         }
         constexpr auto operator==(const TSelf& other) const -> bool = default;
     };
-    template <class TOstream>
-    constexpr auto operator<<(TOstream&& out, const TMappingKeyNotFoundAdditionalInfo& info) -> TOstream {
+    template <class TOstream, class TInfo>                          // the `operator<<` here is declared in this weird way so that it matches only second arguments that
+    requires std::same_as<TInfo, TMappingKeyNotFoundAdditionalInfo> // have the exact type `TMappingKeyNotFoundAdditionalInfo` and not the ones convertible to this type
+    constexpr auto operator<<(TOstream&& out, const TInfo& info) -> TOstream {
         out << "key \""
             << static_cast<const char*>(&info.GetRequestedKey()[0])
             << "\" doesn't exist in mapping";
@@ -135,8 +135,12 @@ namespace NCompileTimeJsonParser::NError {
     }
     template <class TOstream>
     constexpr auto operator<<(TOstream&& out, const TError& error) -> TOstream {
-        out << "Got " << ToStr(error.BasicInfo.Code);
-        if (error.AdditionalInfo.index() != std::variant_npos) {
+        out << ToStr(error.BasicInfo.Code);
+        if (error.AdditionalInfo.index() != std::variant_npos
+            && !(std::holds_alternative<std::string_view>(error.AdditionalInfo)
+              && std::get<std::string_view>(error.AdditionalInfo).empty()
+            )
+        ) {
             out << " (" << error.AdditionalInfo << ")";
         }
         out << " at line " << error.BasicInfo.LineNumber

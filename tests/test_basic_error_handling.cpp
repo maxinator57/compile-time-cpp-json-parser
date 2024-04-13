@@ -63,7 +63,7 @@ auto TestBasicErrorHandling() -> void {
         // Line 5, position 15 is the place where the "params" json mapping starts
         const auto errorMessage = (std::stringstream{} << wrongLookup.Error()).str();
         assert(errorMessage ==
-            "Got \"mapping key not found\" error (key \"interpreters\" doesn't exist in mapping) at line 5, position 15"
+            "\"mapping key not found\" error (key \"interpreters\" doesn't exist in mapping) at line 5, position 15"
         );
     }
 }

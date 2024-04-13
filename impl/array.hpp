@@ -17,7 +17,7 @@ namespace NCompileTimeJsonParser {
     private:
         TGenericSerializedSequenceIterator Iter;
         friend class TJsonArray;
-        friend class TExpected<TJsonArray>;
+        friend struct TExpected<TJsonArray>;
     private:
         constexpr Iterator(TGenericSerializedSequenceIterator&& iter)
             : Iter(std::move(iter)) {}

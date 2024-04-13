@@ -72,12 +72,15 @@ namespace NCompileTimeJsonParser {
             LpCounter,
             NError::ErrorCode::MissingValueError
         );
-        if (Data.size() == 1) return Error(
-            LpCounter,
-            Data[0] == '"'
-                ? NError::ErrorCode::SyntaxError
-                : NError::ErrorCode::TypeError
-        );
+        if (Data.size() == 1) {
+            if (Data[0] == '"') return Error(
+                LpCounter,
+                NError::ErrorCode::SyntaxError
+            ); else return Error(
+                LpCounter,
+                NError::ErrorCode::TypeError
+            );
+        }
         if (Data[0] == '"' && Data.back() != '"') return Error(
             LpCounter.Copy().Process(Data),
             NError::ErrorCode::SyntaxError

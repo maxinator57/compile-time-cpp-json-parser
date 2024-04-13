@@ -7,6 +7,7 @@ Test TestArrayErrorHandling;
 Test TestBasicErrorHandling;
 Test TestBasicValueParsing;
 Test TestComplexStructure;
+Test TestMappingAPI;
 
 
 auto main() -> int {
@@ -15,5 +16,6 @@ auto main() -> int {
     TestBasicErrorHandling();
     TestBasicValueParsing();
     TestComplexStructure();
+    TestMappingAPI();
     std::cout << "All tests passed!\n";
 }

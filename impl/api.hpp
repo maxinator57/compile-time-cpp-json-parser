@@ -4,12 +4,13 @@
 #include "data_holder.hpp"
 
 #include <cstddef>
+#include <ranges>
 #include <string_view>
 
 
 namespace NCompileTimeJsonParser {
     // A custom type like c++23 `std::expected`
-    template <class T> class TExpected; 
+    template <class T> struct TExpected; 
 
     // JSON types:
     using Int = int64_t;
@@ -63,4 +64,4 @@ namespace NCompileTimeJsonParser {
         constexpr auto AsMapping() const -> TExpected<TJsonMapping>;
         constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>; // same effect as `.AsMapping()[idx]`
     }; 
-};
+}
