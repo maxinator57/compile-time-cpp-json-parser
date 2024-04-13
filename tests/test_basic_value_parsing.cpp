@@ -8,6 +8,8 @@ auto TestBasicValueParsing() -> void {
     {   // Int
         static_assert(TJsonValue{"12345"}.AsInt() == 12345);
         static_assert(TJsonValue{"-54321"}.AsInt() == -54321);
+        static_assert(TJsonValue{"0"}.AsInt() == 0);
+        static_assert(TJsonValue{"-0"}.AsInt() == 0);
     }
      
     {   // Double
@@ -19,7 +21,7 @@ auto TestBasicValueParsing() -> void {
         );
         static_assert(
             std::abs(
-                TJsonValue{"0.12131415"}.AsDouble().Value() - 0.12131415
+                TJsonValue{"000.12131415"}.AsDouble().Value() - 0.12131415
             ) < kEps
         );
         static_assert(

@@ -7,47 +7,12 @@
 #include "line_position_counter.hpp"
 
 #include <array>
-#include <stack>
+#include <string>
 #include <string_view>
 #include <type_traits>
 
 
 namespace NCompileTimeJsonParser::NUtils {
-    // A `std::stack<char>` replacement with static memory storage.
-    // It is to be used only at compile-time.
-    struct TCompileTimeStack {
-    private:
-        static constexpr auto kCapacity = []() -> size_t {
-            #ifdef JSON_PARSER_COMPILE_TIME_STACK_CAPACITY
-                return JSON_PARSER_COMPILE_TIME_STACK_CAPACITY;
-            #else
-                return 10; // default value
-            #endif
-        }();
-        std::array<char, kCapacity> Data;
-        size_t Size = 0;
-    public:
-        constexpr auto top() const -> char { return Data[Size - 1]; }  
-        constexpr auto empty() const -> bool { return size() == 0; }
-        constexpr auto size() const -> size_t { return Size; }
-        constexpr auto push(char ch) -> void {
-            if (Size == kCapacity) {
-                // throws because `TCompileTimeStack` is used only at compile time
-                throw Error(
-                    TLinePositionCounter{},
-                    NError::ErrorCode::CompileTimeStackCapacityExceededError,
-                    "try to set `JSON_PARSER_COMPILE_TIME_STACK_CAPACITY` "
-                    "preprocessor option to a greater value when compiling "
-                    "(by adding \"-D JSON_PARSER_COMPILE_TIME_STACK_CAPACITY=<value>\" compilation flag, "
-                    "default value is 10)"
-                );
-            }
-            Data[Size] = ch;
-            ++Size;
-        }
-        constexpr auto pop() -> void { --Size; }
-    }; 
-
     constexpr auto kSpaces = std::string_view{" \t\n"};
     constexpr auto IsSpace(char ch) -> bool {
         return kSpaces.find(ch) != std::string_view::npos;
@@ -81,23 +46,22 @@ namespace NCompileTimeJsonParser::NUtils {
         return std::string_view::npos;
     }
 
-    template <class Stack>
-    requires std::same_as<Stack, TCompileTimeStack>
-          || std::same_as<Stack, std::stack<char>>  
-    constexpr auto FindFirstOfWithZeroBracketBalanceImpl( 
-        Stack&& stack,
+    template <std::invocable<char> Predicate>
+    constexpr auto FindFirstOfWithZeroBracketBalance(
         std::string_view str,
         TLinePositionCounter& lpCounter,
-        std::invocable<char> auto&& predicate,
+        Predicate&& predicate,
         std::string_view::size_type pos = 0
     ) -> TExpected<std::string_view::size_type> {
+        auto stack = std::string{};
+        stack.reserve(100);
         if (str.size() <= pos) return std::string_view::npos;
         for (char ch : str.substr(pos)) {
             lpCounter.Process(ch);
             if (ch == '[' || ch == '{') {
-                stack.push(ch);
+                stack.push_back(ch);
             } else if (ch == ']') {
-                if (stack.empty() || stack.top() != '[') {
+                if (stack.empty() || stack.back() != '[') {
                     lpCounter.StepBack();
                     return Error(
                         lpCounter,
@@ -105,10 +69,10 @@ namespace NCompileTimeJsonParser::NUtils {
                         "brackets mismatch: encountered an excess ']'"
                     );
                 }
-                stack.pop();
+                stack.pop_back();
             } else if (ch == '}') {
                 // TODO: distinguish between these two errors
-                if (stack.empty() || stack.top() != '{') {
+                if (stack.empty() || stack.back() != '{') {
                     lpCounter.StepBack();
                     return Error(
                         lpCounter,
@@ -116,7 +80,7 @@ namespace NCompileTimeJsonParser::NUtils {
                         "brackets mismatch: encountered an excess '}'"
                     );
                 }
-                stack.pop();
+                stack.pop_back();
             };
             const auto balance = stack.size();
             if (balance == 0 && predicate(ch)) {
@@ -134,23 +98,6 @@ namespace NCompileTimeJsonParser::NUtils {
             );
         }
         return std::string_view::npos;
-    }
-
-    template <std::invocable<char> Predicate>
-    constexpr auto FindFirstOfWithZeroBracketBalance(
-        std::string_view str,
-        TLinePositionCounter& lpCounter,
-        Predicate&& predicate,
-        std::string_view::size_type pos = 0
-    ) {
-        // use TCompileTimeStack at compile time
-        if (std::is_constant_evaluated()) return FindFirstOfWithZeroBracketBalanceImpl(
-            TCompileTimeStack{}, str, lpCounter, std::forward<Predicate>(predicate), pos
-        );
-        // and std::stack<char> at runtime
-        else return FindFirstOfWithZeroBracketBalanceImpl(
-            std::stack<char>{}, str, lpCounter, std::forward<Predicate>(predicate), pos
-        );
     }
 
     constexpr auto FindNextElementStartPos(

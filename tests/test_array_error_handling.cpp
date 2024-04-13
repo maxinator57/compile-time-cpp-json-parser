@@ -9,7 +9,7 @@ using namespace NCompileTimeJsonParser;
 
 
 auto TestArrayErrorHandling() -> void {
-    constexpr auto json = TJsonValue{
+    static constexpr auto json = TJsonValue{
         /* line numbers: */
         /* 0 */ "[                \n"
         /* 1 */ "    [1, 2, 3],   \n"
@@ -58,6 +58,7 @@ auto TestArrayErrorHandling() -> void {
         auto vec = std::vector<int>{}; vec.reserve(second.size().Value()); // need to call `.Value()`,
                                                                               // because `secondArr` has type `TExpected<TArray>`,
                                                                               // not just `TArray`
+        static_assert(second.size().Value() == second.Value().size());
         for (auto&& elem : second) {
             vec.push_back(elem.AsInt().Value());
         }
@@ -68,12 +69,12 @@ auto TestArrayErrorHandling() -> void {
         constexpr auto third = json[3].AsArray();
         static_assert(third.HasError());
         // In fact, the error emitted in this example should rather be
-        // "SyntaxError (a closing square bracket is probably missing
-        // at the end of an array)", but, due to the architecture of
-        // this json parser, it's virtually impossible for it to make
-        // such a guess. So we have to be content with at least some
-        // useful information in this case (although not particularly
-        // helpful)
+        // something like "SyntaxError (a closing square bracket is 
+        // probably missing at the end of an array)", but, due to the
+        // architecture of this json parser, it's virtually impossible
+        // for it to make such a guess. So we have to be content with at
+        // least some useful information in this case (although not 
+        // particularly helpful)
         static_assert(third.Error() == NError::TError{
             .BasicInfo = {
                 .LineNumber = 4,
@@ -87,7 +88,7 @@ auto TestArrayErrorHandling() -> void {
     {
         // This error actually emerges not at the last step (when 
         // calling `.AsArray()` for the second time), but rather
-        // when invoking the `[]` method:
+        // when invoking the `[]` operator:
         constexpr auto arr = json.AsArray();
         static_assert(arr.HasValue()); // no error yet
         constexpr auto third = arr[3]; // error occurs here

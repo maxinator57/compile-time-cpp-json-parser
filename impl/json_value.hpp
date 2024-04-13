@@ -62,7 +62,8 @@ namespace NCompileTimeJsonParser {
             return result;
         };
 
-        const auto fracPartDouble = static_cast<double>(fracPart) / pow(uint64_t{10}, fracPartLen);
+        const auto fracPartDouble =
+            static_cast<double>(fracPart) / static_cast<double>(pow(uint64_t{10}, fracPartLen));
         return static_cast<double>(intPart) + (intPart < 0 ? -fracPartDouble : fracPartDouble);
     }
 

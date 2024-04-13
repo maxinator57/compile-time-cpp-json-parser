@@ -8,15 +8,18 @@
 
 
 namespace NCompileTimeJsonParser {
-    template <class T> struct TExpected;
+    // A custom type like c++23 `std::expected`
+    template <class T> class TExpected; 
 
     // JSON types:
-    
-    class TJsonValue;
-
     using Int = int64_t;
     using Double = double;
     using String = std::string_view;
+    class TJsonArray;
+    class TJsonMapping;
+    // A type for holding an arbitrary json value
+    class TJsonValue;
+
 
     class TJsonArray : public TDataHolderMixin {
     private:
@@ -31,6 +34,7 @@ namespace NCompileTimeJsonParser {
         constexpr auto end() const -> Iterator;
     };
 
+
     class TJsonMapping : public TDataHolderMixin {
     private:
         constexpr TJsonMapping(std::string_view, const TLinePositionCounter&);
@@ -43,6 +47,7 @@ namespace NCompileTimeJsonParser {
         constexpr auto begin() const -> Iterator;
         constexpr auto end() const -> Iterator;
     }; 
+
 
     class TJsonValue : public TDataHolderMixin {
     public:

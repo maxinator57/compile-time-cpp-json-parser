@@ -9,6 +9,8 @@
 
 
 namespace NCompileTimeJsonParser::NError {
+    // Contains codes for all errors that may occur
+    // when using this json parser
     enum class ErrorCode : uint8_t {
         SyntaxError = 1,
         TypeError, 
@@ -16,8 +18,8 @@ namespace NCompileTimeJsonParser::NError {
         ArrayIndexOutOfRange,
         MappingKeyNotFound,
         IteratorDereferenceError,
-        CompileTimeStackCapacityExceededError,
-    }; 
+    };
+    // Maps `ErrorCode` values to string representations
     constexpr auto ToStr(ErrorCode code) -> std::string_view {
         using enum ErrorCode;
         switch (code) {
@@ -33,10 +35,12 @@ namespace NCompileTimeJsonParser::NError {
                 return "\"mapping key not found\" error";
             case IteratorDereferenceError:
                 return "\"iterator dereference\" error";
-            case CompileTimeStackCapacityExceededError:
-                return "\"compile-time stack capacity exceeded\" error";
         }
-    };
+        return "\"invalid error code\""; // to avoid compiler warning; should rather 
+                                         // be `std::unreachable()` from c++23 (this
+                                         // project is written in c++20 on purpose,
+                                         // so, can't use it here)
+    }
     template <class TOstream>
     constexpr auto operator<<(TOstream& out, ErrorCode code) -> TOstream& {
         out << ToStr(code);
@@ -85,14 +89,11 @@ namespace NCompileTimeJsonParser::NError {
         constexpr auto operator==(const TSelf& other) const -> bool = default;
     };
     template <class TOstream>
-    constexpr auto operator<<(
-        TOstream& out,
-        const TMappingKeyNotFoundAdditionalInfo& info
-    ) -> TOstream& {
+    constexpr auto operator<<(TOstream&& out, const TMappingKeyNotFoundAdditionalInfo& info) -> TOstream {
         out << "key \""
             << static_cast<const char*>(&info.GetRequestedKey()[0])
             << "\" doesn't exist in mapping";
-        return out;
+        return std::forward<TOstream>(out);
     }
 
     struct TError { 
@@ -111,14 +112,10 @@ namespace NCompileTimeJsonParser::NError {
         constexpr auto operator==(const TError& other) const -> bool = default;
     };
 
-    // For `TInfo` == `std::string_view` or `const char*` must
-    // be used only with objects with static storage duration
-    template <class TInfo = std::string_view>
-    requires std::convertible_to<TInfo, TError::TAdditionalInfo> 
     constexpr auto Error(
         TLinePositionCounter lpCounter,
         ErrorCode code,
-        TInfo additionalInfo = {}
+        TError::TAdditionalInfo additionalInfo = std::string_view{}
     ) -> TError {
         return {
             .BasicInfo = {
@@ -130,20 +127,21 @@ namespace NCompileTimeJsonParser::NError {
         };
     }
     
-    template <class TOstream>
-    constexpr auto operator<<(TOstream& out, const TError::TAdditionalInfo& info) -> TOstream& {
+    template <class TOstream, class TAdditionalInfo>                // the `operator<<` here is declared in this weird way so that it matches only second arguments
+    requires std::same_as<TAdditionalInfo, TError::TAdditionalInfo> // that have the exact type `TError::TAdditionalInfo` and not the ones convertible to this type
+    constexpr auto operator<<(TOstream&& out, const TAdditionalInfo& info) -> TOstream {
         std::visit([&out](auto&& val) { out << val; }, info);
-        return out;
+        return std::forward<TOstream>(out);
     }
     template <class TOstream>
-    constexpr auto operator<<(TOstream& out, const TError& error) -> TOstream& {
+    constexpr auto operator<<(TOstream&& out, const TError& error) -> TOstream {
         out << "Got " << ToStr(error.BasicInfo.Code);
         if (error.AdditionalInfo.index() != std::variant_npos) {
             out << " (" << error.AdditionalInfo << ")";
         }
         out << " at line " << error.BasicInfo.LineNumber
             << ", position " << error.BasicInfo.Position;
-        return out;
+        return std::forward<TOstream>(out);
     }
 
     template <ErrorCode code, size_t lineNumber, size_t position>
