@@ -4,7 +4,6 @@
 #include "data_holder.hpp"
 
 #include <cstddef>
-#include <ranges>
 #include <string_view>
 
 
