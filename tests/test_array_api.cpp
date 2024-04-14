@@ -11,53 +11,74 @@ using namespace NCompileTimeJsonParser;
 
 auto TestArrayAPI() -> void {
     static constexpr auto json = TJsonValue{
-        "[1, 2, \"fizz\", 4, \"buzz\", \"fizz\", 7, 8, \"fizz\", \"buzz\", 11, \"fizz\", 13, 14, \"fizzbuzz\"]"
+        "[1, 2, \"fizz\", 4, \"buzz\", \"fizz\", 7, 8, \"fizz\", \"buzz\", 11, \"fizz\", 13, 14, [\"fizz\", \"buzz\"]]"
     };
-    // First, explicitly convert json to an array. Arrays don't have to be homogenous in their element type:
+
+    // First, explicitly convert json to an array. Arrays don't have to be homogenous in their element type
     static constexpr auto arr = json.AsArray();
     static_assert(!arr.HasError());
 
-    // Iterate over json arrays in usual ways:
-    {   // Provides `.begin()` and `.end()` iterators of type `TJsonArray::Iterator`,
-        // which is guranteed to be at least a `forward_iterator`:
-        static_assert(std::forward_iterator<TJsonArray::Iterator>);
+    {   // Get an element by index
+        static_assert(arr[2].AsString() == "fizz");
+        // Same thing without explicitly casting `json` to `TJsonArray`
+        static_assert(json[2].AsString() == "fizz"); // remember that `arr == json.AsArray()`
+        // Nested array elements can be accessed without explicitly calling `AsArray()` to get intermediate arrays
+        static_assert(json[14][0].AsString() == "fizz");
+        static_assert(json[14][1].AsString() == "buzz");
+        // Same as
+        static_assert(json[14].AsArray()[0].AsString().Value() == "fizz");
+        static_assert(json[14].AsArray()[1].AsString().Value() == "buzz");
+    }
 
-        // For example, let's add up all elements of the array that are integers
-        // by manually iterating over them:
+    {   // Iterate over json arrays in usual ways.
+        // `TJsonArray` provides `.begin()` and `.end()` iterators of type `TJsonArray::Iterator`,
+        // which is guaranteed to be at least a `forward_iterator`
+        static_assert(std::forward_iterator<TJsonArray::Iterator>);
+    }
+
+    {   // For example, let's add up all elements of the array that are integers
+        // by manually iterating over them
         int sum = 0; 
         for (auto it = arr.begin(); it != arr.end(); ++it) {
-            auto elem = (*it).AsInt(); // the type of `elem` is `TExpected<Int>`
+            const auto elem = (*it).AsInt(); // the type of `elem` is `TExpected<Int>`
             if (elem.HasValue()) {    // check that the current element is an actual integer
                 sum += elem.Value();  // then safely take its value and add it to the sum
             }
         }
         assert(sum == 60);
     }
-    {   // Do the same thing using a regular range-based `for` loop:
+
+    {   // Do the same thing using a regular range-based `for` loop
         int sum = 0;
-        for (auto&& elem : arr) if (auto x = elem.AsInt(); x.HasValue()) sum += x.Value();
+        for (const auto elem : arr)
+            if (const auto x = elem.AsInt(); x.HasValue())
+                sum += x.Value();
         assert(sum == 60);
     }
-    {   // Do the same thing using c++20 ranges (for some reason doesn't compile on clang):
+
+    {   // Do the same thing using c++20 ranges
+        // (for some reason related to concept checking this doesn't compile on clang)
         #if !defined (__clang__) && defined (__GNUG__)
         auto processedArr = arr
-            | std::views::transform([](auto&& elem) { return elem.AsInt(); })
-            | std::views::filter([](auto&& maybeInt) { return maybeInt.HasValue(); })
-            | std::views::transform([](auto&& definitelyInt) { return definitelyInt.Value(); });
+            | std::views::transform([](auto elem) { return elem.AsInt(); })
+            | std::views::filter([](auto maybeInt) { return maybeInt.HasValue(); })
+            | std::views::transform([](auto definitelyInt) { return definitelyInt.Value(); });
         const auto sum = std::accumulate(processedArr.begin(), processedArr.end(), 0);
         assert(sum == 60);
         #endif
     }
+
     {   // Do the same thing at compile time using `std::accumulate`
-        // with custom addition operation:
+        // with custom addition operation
         constexpr auto sum = std::accumulate(
             arr.begin(), arr.end(), 0,
-            [](int curSum, auto&& elem) {
+            [](int curSum, auto elem) {
                 return curSum + (elem.AsInt().HasValue() ? elem.AsInt().Value() : 0);
             }
         );
         static_assert(sum == 60);
-    }
+    } 
+
     {   // This works, but is NOT efficient, as it runs in
         // O({length of underlying string data} * {number of elements in the array})
         int sum = 0;
@@ -66,19 +87,13 @@ auto TestArrayAPI() -> void {
         }
         assert(sum == 60);
     }
- 
-    {   // Get an element by index:
-        static_assert(arr[2].AsString() == "fizz");
-        // Same thing without explicitly casting json to array:
-        static_assert(json[2].AsString() == "fizz"); // remember that `arr == json.AsArray()`
-    }
 
-    {   // Get the number of elements in an array (works in O({length of underlying string data})):
+    {   // Get the number of elements in an array (works in O({length of underlying string data}))
         auto ints = std::vector<int>{}; ints.reserve(arr.size().Value()); // have to call `.Value()` after calling `.size()`,
                                                                           // because the type of `arr` is not `TJsonArray`,
                                                                           // but `TExpected<TJsonArray>`
         static_assert(arr.size().Value() == arr.Value().size());
-        for (auto&& elem : arr) {
+        for (const auto elem : arr) {
             const auto maybeInt = elem.AsInt();
             if (maybeInt.HasValue()) ints.push_back(maybeInt.Value());
         }
@@ -89,14 +104,14 @@ auto TestArrayAPI() -> void {
         constexpr auto ints = []() {
             constexpr auto n = []() {
                 int n = 0;
-                for (const auto& elem : arr) {
+                for (const auto elem : arr) {
                     if (elem.AsInt().HasValue()) ++n;
                 }
                 return n;
             }();
-            auto v = []() {
+            const auto v = []() {
                 auto v = std::vector<int>{};
-                for (const auto& elem : arr) {
+                for (const auto elem : arr) {
                     if (elem.AsInt().HasValue()) v.push_back(elem.AsInt().Value());
                 }
                 return v;

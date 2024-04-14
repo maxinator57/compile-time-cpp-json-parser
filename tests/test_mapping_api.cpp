@@ -22,9 +22,20 @@ auto TestMappingAPI() -> void {
     };
     static constexpr auto map = json.AsMapping();
 
-    // Use `operator[]` to access values by key
-    // Works in O({length of underlying string representation})
-    static_assert(map["aba"].AsString() == "caba");
+    {   // Use `operator[]` to access values by key
+        // Works in O({length of underlying string representation})
+        static_assert(map["aba"].AsString() == "caba");
+        // We can access nested maps and arrays without explicitly
+        // casting `TJsonValue` to `TJsonMapping` or `TJsonArray`
+        static_assert(map["lst"][2].AsString() == "fizz");
+        static_assert(map["dct"]["bar"].AsInt() == 5);
+    }
+
+    {   // Iterate over json maps in usual ways.
+        // `TJsonMap` provides `.begin()` and `.end()` iterators of type `TJsonMapping::Iterator`,
+        // which is guaranteed to be at least a `forward_iterator`
+        static_assert(std::forward_iterator<TJsonMapping::Iterator>);
+    }
 
     {   // Iterate over (key, value) pairs
         // Also works in O({length of underlying string representation})
@@ -33,7 +44,8 @@ auto TestMappingAPI() -> void {
             if (k.HasValue() && k.Value() == "aba") {
                 assert(v.AsString() == "caba");
                 ++nChecks;
-            } else if (k.HasError()) { // `k` == 1, `v` == "daba": only strings are allowed to be keys in json maps
+            } else if (k.HasError()) {
+                // `k` == 1, `v` == "daba": only strings are allowed as keys in json maps
                 assert(v.AsString() == "daba");
                 assert(k.Error() == Error(
                     TLinePositionCounter{.LineNumber = 2, .Position = 4},
@@ -50,10 +62,5 @@ auto TestMappingAPI() -> void {
             }
         }
         assert(nChecks == 4);
-    }
-
-    // We can access nested maps and arrays without explicitly
-    // casting `TJsonValue` to `TJsonMapping` or `TJsonArray`:
-    static_assert(map["lst"][2].AsString() == "fizz");
-    static_assert(map["dct"]["bar"].AsInt() == 5);
+    } 
 }

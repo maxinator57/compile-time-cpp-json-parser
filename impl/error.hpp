@@ -127,8 +127,8 @@ namespace NCompileTimeJsonParser::NError {
         };
     }
     
-    template <class TOstream, class TAdditionalInfo>                // the `operator<<` here is declared in this weird way so that it matches only second arguments
-    requires std::same_as<TAdditionalInfo, TError::TAdditionalInfo> // that have the exact type `TError::TAdditionalInfo` and not the ones convertible to this type
+    template <class TOstream, class TAdditionalInfo>                // the `operator<<` here is declared in this weird way so that it matches only second arguments that have the exact
+    requires std::same_as<TAdditionalInfo, TError::TAdditionalInfo> // type `TError::TAdditionalInfo` and not the types that are just implicitly convertible to `TError::TAdditionalInfo`
     constexpr auto operator<<(TOstream&& out, const TAdditionalInfo& info) -> TOstream {
         std::visit([&out](auto&& val) { out << val; }, info);
         return std::forward<TOstream>(out);
@@ -137,8 +137,8 @@ namespace NCompileTimeJsonParser::NError {
     constexpr auto operator<<(TOstream&& out, const TError& error) -> TOstream {
         out << ToStr(error.BasicInfo.Code);
         if (error.AdditionalInfo.index() != std::variant_npos
-            && !(std::holds_alternative<std::string_view>(error.AdditionalInfo)
-              && std::get<std::string_view>(error.AdditionalInfo).empty()
+            && !(std::holds_alternative<std::string_view>(error.AdditionalInfo) // okay, this is a bit ugly, but it's impossible to construct an empty `std::variant` except for the "valueless by exception"
+              && std::get<std::string_view>(error.AdditionalInfo).empty()       // case", so, `error.AdditionalInfo` being an empty `std::string::view` is equivalent to having no additional info
             )
         ) {
             out << " (" << error.AdditionalInfo << ")";
@@ -148,6 +148,8 @@ namespace NCompileTimeJsonParser::NError {
         return std::forward<TOstream>(out);
     }
 
+    // Two metafunctions for printing error messages at compile time
+    // (at least the `BasicInfo` part)
     template <ErrorCode code, size_t lineNumber, size_t position>
     struct PrintErrAtCompileTimeImpl {
         static_assert(static_cast<int>(code) == 0);

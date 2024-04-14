@@ -25,7 +25,7 @@ auto TestComplexStructure() -> void {
         static_assert(
             json.AsMapping()["data"].AsArray()[1].AsMapping()["x"].AsInt() == 57
         );
-        // Same operations, shorter syntax:
+        // Same operations, shorter syntax
         static_assert(
             json["data"][1]["x"].AsInt() == 57
         );
@@ -36,7 +36,7 @@ auto TestComplexStructure() -> void {
             auto compilers = std::array<std::string_view, 2>{};
             size_t i = 0;
             constexpr auto compilersInfo = json["params"]["compilers"].AsArray();
-            for (auto&& info : compilersInfo) {
+            for (const auto info : compilersInfo) {
                 compilers[i] = info["name"].AsString().Value();
                 ++i;
             }
@@ -47,7 +47,7 @@ auto TestComplexStructure() -> void {
 
     {   // Safely lookup in maps and arrays and continue without the need to check for errors on each level
         constexpr auto wrongLookup = json["non-existent_key"][42].AsString();
-        // It is enough to check for errors only at the very end (thanks to monadic operations):
+        // It is enough to check for errors only at the very end (thanks to monadic operations)
         static_assert(wrongLookup.HasError());
 
         constexpr auto rightLookup = json["params"]["cpp_standard"].AsInt();

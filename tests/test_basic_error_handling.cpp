@@ -25,7 +25,7 @@ auto TestBasicErrorHandling() -> void {
     /* 12 */ "}                                                           \n"
     };
 
-    {   // When trying to parse json value as a wrong type, we get a `TypeError`:
+    {   // When trying to parse json value as a wrong type, we get a `TypeError`
         constexpr auto asWrongType = json.AsArray();
         static_assert(asWrongType.HasError());
         static_assert(asWrongType.Error() == NError::TError{
@@ -41,13 +41,13 @@ auto TestBasicErrorHandling() -> void {
         });
     }
 
-    {   // Lookups made after the first time an error occurs keep the information about this error:
+    {   // Lookups made after the first time an error occurs keep the information about this error
         constexpr auto params = json["params"].AsMapping();
-        // No error yet:
-        static_assert(!params.HasError()); // equivalent to params.HasValue():
+        // No error yet
+        static_assert(!params.HasError()); // equivalent to params.HasValue()
         static_assert(params.HasValue());
 
-        // Now perform some operations that would result in an error:
+        // Now perform some operations that would result in an error
         constexpr auto wrongLookup =
             params["interpreters"][0]["name"].AsString(); // the requested key "interpreters" 
                                                           // doesn't exist in the mapping

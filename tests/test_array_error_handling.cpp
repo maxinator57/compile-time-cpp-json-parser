@@ -20,14 +20,14 @@ auto TestArrayErrorHandling() -> void {
     };
 
     // Although we have a syntax error on line 4 (4-th array ends
-    // with a curly brace ('}') instead of square bracket (']')),
-    // reading the first three arrays is fine:
+    // with a curly brace '}' instead of square bracket ']'),
+    // reading the first three arrays is fine.
     
-    {   // Compute the sum of elements of the first array using `std::accumulate`:
+    {   // Compute the sum of elements of the first array using `std::accumulate`
         constexpr auto zeroth = json[0].AsArray();
         constexpr auto zerothSum = std::accumulate(
             zeroth.begin(), zeroth.end(), 0,
-            [](int sum, auto&& arrayElem){
+            [](int sum, auto arrayElem){
                 return sum + arrayElem.AsInt().Value(); // unsafe to call `.Value()` without
                                                         // checking for `.HasValue()` first,
                                                         // but will do for a demo
@@ -39,7 +39,7 @@ auto TestArrayErrorHandling() -> void {
         constexpr auto first = json[1].AsArray();
         static_assert(first[0].AsInt() == 4);
         static_assert(first[1].HasError()); // index 1 is out of range for the array `[4]`
-        // As shown by error message:
+        // As shown by error message
         static_assert(first[1].Error() == NError::TError{
             .BasicInfo = {
                 .LineNumber = 2,
@@ -56,10 +56,11 @@ auto TestArrayErrorHandling() -> void {
     {
         constexpr auto second = json[2].AsArray();
         auto vec = std::vector<int>{}; vec.reserve(second.size().Value()); // need to call `.Value()`,
-                                                                              // because `secondArr` has type `TExpected<TArray>`,
-                                                                              // not just `TArray`
-        static_assert(second.size().Value() == second.Value().size());
-        for (auto&& elem : second) {
+                                                                           // because `secondArr` has type `TExpected<TArray>`,
+                                                                           // not just `TArray`
+        static_assert(second.size().Value() == second.Value().size()); // it's not important where exactly the unwrapping of `TExpected<T>`
+                                                                       // to an instance of `T` happens by calling the `.Value()` method
+        for (const auto elem : second) {
             vec.push_back(elem.AsInt().Value());
         }
         assert((vec == std::vector{5, 6}));
@@ -88,7 +89,7 @@ auto TestArrayErrorHandling() -> void {
     {
         // This error actually emerges not at the last step (when 
         // calling `.AsArray()` for the second time), but rather
-        // when invoking the `[]` operator:
+        // when invoking the `[]` operator
         constexpr auto arr = json.AsArray();
         static_assert(arr.HasValue()); // no error yet
         constexpr auto third = arr[3]; // error occurs here
