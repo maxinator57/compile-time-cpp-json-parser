@@ -4,8 +4,6 @@
 #include "api.hpp"
 #include "error.hpp"
 
-#include <variant>
-
 
 namespace NCompileTimeJsonParser {
     // A mixin class template which provides some convenient operations
@@ -25,29 +23,37 @@ namespace NCompileTimeJsonParser {
         constexpr auto HasError() const noexcept -> bool {
             return !HasValue();
         }
+        // Provides only const version of the `Value()` method on purpose
         constexpr auto Value() const -> const T& {
             return std::get<T>(*this);
         }
-        constexpr auto Value() -> T& {
-            return std::get<T>(*this);
-        }
+        // Provides only const version of the `Error()` method on purpose
         constexpr auto Error() const -> const NError::TError& {
             return std::get<NError::TError>(*this);
         }
-        constexpr auto Error() -> NError::TError& {
-            return std::get<NError::TError>(*this);
-        }
-        constexpr auto operator==(const TExpectedMixin<T>& other) const -> bool {
+        constexpr auto operator==(const TExpectedMixin<T>& other) const noexcept(
+            noexcept(std::declval<T>() == std::declval<T>())
+         && noexcept(Error() == other.Error())
+        ) -> bool {
+            static_assert(noexcept(std::declval<NError::TError>() == std::declval<NError::TError>()));
             if (HasValue() && other.HasValue()) return Value() == other.Value();
             if (HasError() && other.HasError()) return Error() == other.Error();
             return false;
         }
-        // constexpr auto operator==(const T& otherValue) const -> bool {
-        //     return HasValue() && Value() == otherValue;
-        // }
-        // constexpr auto operator==(const NError::TError& otherError) const -> bool {
-        //     return HasError() && Error() == otherError;
-        // }
+        // An `operator==` for efficient comparison with instances of `T`.
+        // The comparison happens without the invocation of `TExpectedMixin` constructor
+        template <class U>
+        requires std::same_as<U, T>
+        constexpr auto operator==(const U& otherValue) const -> bool {
+            return HasValue() && Value() == otherValue;
+        }
+        // An `operator==` for efficient comparison with instances of `NError::TError`.
+        // The comparison happens without the invocation of `TExpectedMixin` constructor
+        template <class U>
+        requires std::same_as<U, NError::TError>
+        constexpr auto operator==(const U& otherError) const -> bool {
+            return HasError() && Error() == otherError;
+        }
     };
 
     // The general `TExpected` template
@@ -55,8 +61,6 @@ namespace NCompileTimeJsonParser {
     struct TExpected : public TExpectedMixin<T> {
         // Bring constructor from mixin to class scope
         using TExpectedMixin<T>::TExpectedMixin;
-
-        // Other mixin methods are available thanks to public inheritance
     };
 
     // The specialization of `TExpected` class template for `TJsonArray`
@@ -65,13 +69,11 @@ namespace NCompileTimeJsonParser {
         // Bring constructor from mixin to class scope:
         using TExpectedMixin<TJsonArray>::TExpectedMixin;
 
-        // Other mixin methods are available thanks to public inheritance
-
         // Monadic methods specific to `TExpected<TJsonArray>`:
-        constexpr auto operator[](size_t i) const -> TExpected<TJsonValue>;
-        constexpr auto size() const -> TExpected<size_t>;
-        constexpr auto begin() const -> TJsonArray::Iterator;
-        constexpr auto end() const -> TJsonArray::Iterator;
+        constexpr auto operator[](size_t) const noexcept -> TExpected<TJsonValue>;
+        constexpr auto size() const noexcept -> TExpected<size_t>;
+        constexpr auto begin() const noexcept -> TJsonArray::Iterator;
+        constexpr auto end() const noexcept -> TJsonArray::Iterator;
     };
 
     // The specialization of `TExpected` class template for `TJsonMapping`
@@ -80,13 +82,11 @@ namespace NCompileTimeJsonParser {
         // Bring constructor from mixin to class scope:
         using TExpectedMixin<TJsonMapping>::TExpectedMixin;
 
-        // Other mixin methods are available thanks to public inheritance
-
         // Monadic methods specific to `TExpected<TJsonMapping>`:
-        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
-        constexpr auto size() const -> TExpected<size_t>;
-        constexpr auto begin() const -> TJsonMapping::Iterator;
-        constexpr auto end() const -> TJsonMapping::Iterator;
+        constexpr auto operator[](std::string_view) const noexcept -> TExpected<TJsonValue>;
+        constexpr auto size() const noexcept -> TExpected<size_t>;
+        constexpr auto begin() const noexcept -> TJsonMapping::Iterator;
+        constexpr auto end() const noexcept -> TJsonMapping::Iterator;
     };
 
     // The specialization of `TExpected` class template for `TJsonValue`
@@ -95,17 +95,17 @@ namespace NCompileTimeJsonParser {
         // Bring constructor from mixin to class scope:
         using TExpectedMixin<TJsonValue>::TExpectedMixin;
 
-        // Other mixin methods are available thanks to public inheritance
-
         // Monadic methods specific to `TExpected<TJsonValue>`:
         constexpr auto AsInt() const -> TExpected<Int>;
         constexpr auto AsDouble() const -> TExpected<Double>; 
         constexpr auto AsString() const -> TExpected<String>;
 
         constexpr auto AsArray() const -> TExpected<TJsonArray>;
-        constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>; // same effect as `.AsArray()[idx]`
+        // Same effect as `.AsArray()[idx]`
+        constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>;
 
         constexpr auto AsMapping() const -> TExpected<TJsonMapping>;
-        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>; // same effect as `.AsMapping()[key]`
+        // Same effect as `.AsMapping()[key]`
+        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
     };
 }

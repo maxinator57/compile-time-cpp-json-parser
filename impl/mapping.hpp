@@ -7,8 +7,6 @@
 #include "iterator.hpp"
 #include "line_position_counter.hpp"
 
-#include <string_view>
-
 
 namespace NCompileTimeJsonParser {
     constexpr TJsonMapping::TJsonMapping(std::string_view data, const TLinePositionCounter& lpCounter)
@@ -19,6 +17,7 @@ namespace NCompileTimeJsonParser {
         TGenericSerializedSequenceIterator KeyIter;
         TGenericSerializedSequenceIterator ValIter;
         friend class TJsonMapping;
+        friend struct TExpected<TJsonMapping>;
     private:
         constexpr Iterator(TGenericSerializedSequenceIterator&& iter)
             : KeyIter(std::move(iter))
@@ -68,10 +67,10 @@ namespace NCompileTimeJsonParser {
         auto it = begin();
         for (; it != end(); ++it) {
             auto [k, v] = *it;
+            if (k.HasError()) return k.Error();
+            if (v.HasError()) return v.Error();
             if (k == key) return v;
         }
-        if (it.KeyIter.HasError()) return it.KeyIter.Error();
-        if (it.ValIter.HasError()) return it.ValIter.Error();
         return Error(
             LpCounter,
             NError::ErrorCode::MappingKeyNotFound,
@@ -85,23 +84,20 @@ namespace NCompileTimeJsonParser {
         return counter;
     }
 
-    constexpr auto TExpected<TJsonMapping>::begin() const -> TJsonMapping::Iterator {
-        // TODO: add error forwarding
-        return HasValue() ? Value().begin() : TJsonMapping::Iterator{};
+    constexpr auto TExpected<TJsonMapping>::begin() const noexcept -> TJsonMapping::Iterator {
+        return HasValue() ? Value().begin() : TJsonMapping::Iterator{Error()};
     }
 
-    constexpr auto TExpected<TJsonMapping>::end() const -> TJsonMapping::Iterator {
-        // TODO: add error forwarding
-        return HasValue() ? Value().end() : TJsonMapping::Iterator{};
+    constexpr auto TExpected<TJsonMapping>::end() const noexcept -> TJsonMapping::Iterator {
+        return HasValue() ? Value().end() : TJsonMapping::Iterator{Error()};
     }
 
-    constexpr auto TExpected<TJsonMapping>::operator[](
-        std::string_view key
-    ) const -> TExpected<TJsonValue> {
+    constexpr auto TExpected<TJsonMapping>::operator[](std::string_view key) const noexcept
+    -> TExpected<TJsonValue> {
         return HasValue() ? Value()[key] : Error();
     }
 
-    constexpr auto TExpected<TJsonMapping>::size() const -> TExpected<size_t> {
+    constexpr auto TExpected<TJsonMapping>::size() const noexcept -> TExpected<size_t> {
         return HasValue() ? TExpected<size_t>{Value().size()} : Error();
     }
 } // namespace NCompileTimeJsonParser

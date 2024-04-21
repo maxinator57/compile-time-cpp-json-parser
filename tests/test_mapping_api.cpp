@@ -10,13 +10,13 @@ auto TestMappingAPI() -> void {
     static constexpr auto json = TJsonValue{
         "{                                      \n"
         "    \"aba\": \"caba\",                       \n"
-        "    1: \"daba\",                             \n"
         "    \"lst\" : [1, 2, \"fizz\", 4, \"buzz\"], \n"
         "    \"dct\" : {                              \n"
         "        \"foo\": 3,                          \n"
         "        \"bar\": 5,                          \n"
         "        \"baz\": \"fizz\",                   \n"
-        "    },                                       \n"
+        "    },                                       \n" 
+        "    1: \"daba\",                             \n"
         "}                                              "
     };
     static constexpr auto map = json.AsMapping();
@@ -47,8 +47,9 @@ auto TestMappingAPI() -> void {
                 // `k` == 1, `v` == "daba": only strings are allowed as keys in json maps
                 assert(v.AsString() == "daba");
                 assert(k.Error() == Error(
-                    TLinePositionCounter{.LineNumber = 2, .Position = 4},
-                    NError::ErrorCode::TypeError
+                    TLinePositionCounter{.LineNumber = 8, .Position = 4},
+                    NError::ErrorCode::TypeError,
+                    "expected string, got something else"
                 ));
                 ++nChecks;
             } else if (k.HasValue() && k.Value() == "lst") {

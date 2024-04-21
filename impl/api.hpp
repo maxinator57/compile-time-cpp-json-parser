@@ -3,9 +3,6 @@
 
 #include "data_holder.hpp"
 
-#include <cstddef>
-#include <string_view>
-
 
 namespace NCompileTimeJsonParser {
     // A custom type like c++23 `std::expected`
@@ -23,15 +20,15 @@ namespace NCompileTimeJsonParser {
 
     class TJsonArray : public TDataHolderMixin {
     private:
-        constexpr TJsonArray(std::string_view, const TLinePositionCounter&);
+        constexpr TJsonArray(std::string_view, const TLinePositionCounter&) noexcept;
         friend class TJsonValue;
     public:
-        constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>;
-        constexpr auto size() const -> size_t;
+        constexpr auto operator[](size_t idx) const noexcept -> TExpected<TJsonValue>;
+        constexpr auto size() const noexcept -> size_t;
 
         class Iterator;
-        constexpr auto begin() const -> Iterator;
-        constexpr auto end() const -> Iterator;
+        constexpr auto begin() const noexcept -> Iterator;
+        constexpr auto end() const noexcept -> Iterator;
     };
 
 
@@ -58,9 +55,11 @@ namespace NCompileTimeJsonParser {
         constexpr auto AsString() const -> TExpected<String>;
 
         constexpr auto AsArray() const -> TExpected<TJsonArray>;
-        constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>; // same effect as `.AsArray()[idx]`
+        // Same effect as `.AsArray()[idx]`
+        constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>;
 
         constexpr auto AsMapping() const -> TExpected<TJsonMapping>;
-        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>; // same effect as `.AsMapping()[idx]`
+        // Same effect as `.AsMapping()[idx]`
+        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
     }; 
 }

@@ -5,12 +5,9 @@
 #include "error.hpp"
 #include "iterator.hpp"
 
-#include <cstddef>
-#include <string_view>
-
 
 namespace NCompileTimeJsonParser {
-    constexpr TJsonArray::TJsonArray(std::string_view data, const TLinePositionCounter& lpCounter)
+    constexpr TJsonArray::TJsonArray(std::string_view data, const TLinePositionCounter& lpCounter) noexcept
         : TDataHolderMixin(data, lpCounter) {}
 
     class TJsonArray::Iterator {
@@ -39,49 +36,56 @@ namespace NCompileTimeJsonParser {
         constexpr auto operator==(const Iterator& other) const -> bool = default;
     };
 
-    constexpr auto TJsonArray::begin() const -> Iterator { 
-        return TGenericSerializedSequenceIterator::Begin(Data, LpCounter, ',');
+    constexpr auto TJsonArray::begin() const noexcept -> Iterator { 
+        return TGenericSerializedSequenceIterator::Begin(
+            Data,
+            LpCounter.Copy().Process('['),
+            ','
+        );
     }
 
-    constexpr auto TJsonArray::end() const -> Iterator {
-        return TGenericSerializedSequenceIterator::End(Data, LpCounter);
+    constexpr auto TJsonArray::end() const noexcept -> Iterator {
+        return TGenericSerializedSequenceIterator::End(
+            Data,
+            LpCounter.Copy().Process('[')
+        );
     }
 
-    constexpr auto TJsonArray::operator[](size_t idx) const -> TExpected<TJsonValue> {
+    constexpr auto TJsonArray::operator[](size_t idx) const noexcept -> TExpected<TJsonValue> { 
+        size_t counter = 0;
         auto it = begin(), finish = end();
-        auto counter = size_t{0};
-        for (; it != finish && counter < idx; ++it, ++counter);
+        for (; it != finish && !it.Iter.HasError() && counter < idx; ++it, ++counter);
         if (it.Iter.HasError()) return it.Iter.Error();
-        return it == finish
-            ? Error(
-                LpCounter.Copy().StepBack(),
-                NError::ErrorCode::ArrayIndexOutOfRange,
-                NError::TArrayIndexOutOfRangeAdditionalInfo{
-                    .Index = idx,
-                    .ArrayLen = counter
-                })
-            : *it;
+        if (it == finish) return Error(
+            LpCounter,
+            NError::ErrorCode::ArrayIndexOutOfRange,
+            NError::TArrayIndexOutOfRangeAdditionalInfo{
+                .Index = idx,
+                .ArrayLen = counter
+            }
+        );
+        return *it;
     }
 
-    constexpr auto TJsonArray::size() const -> size_t {
-        auto counter = size_t{0};
+    constexpr auto TJsonArray::size() const noexcept -> size_t {
+        size_t counter = 0;
         for (auto it = begin(); it != end(); ++it, ++counter);
         return counter; 
     }
 
-    constexpr auto TExpected<TJsonArray>::begin() const -> TJsonArray::Iterator {
+    constexpr auto TExpected<TJsonArray>::begin() const noexcept -> TJsonArray::Iterator {
         return HasValue() ? Value().begin() : TJsonArray::Iterator{Error()};
     }
 
-    constexpr auto TExpected<TJsonArray>::end() const -> TJsonArray::Iterator {
+    constexpr auto TExpected<TJsonArray>::end() const noexcept -> TJsonArray::Iterator {
         return HasValue() ? Value().end() : TJsonArray::Iterator{Error()};
     } 
 
-    constexpr auto TExpected<TJsonArray>::operator[](size_t idx) const -> TExpected<TJsonValue> {
+    constexpr auto TExpected<TJsonArray>::operator[](size_t idx) const noexcept -> TExpected<TJsonValue> {
         return HasValue() ? Value()[idx] : Error();
     }
 
-    constexpr auto TExpected<TJsonArray>::size() const -> TExpected<size_t> {
+    constexpr auto TExpected<TJsonArray>::size() const noexcept -> TExpected<size_t> {
         return HasValue() ? TExpected<size_t>{Value().size()} : Error();
     }
 }

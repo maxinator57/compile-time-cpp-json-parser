@@ -8,7 +8,6 @@
 #include "utils.hpp"
 
 #include <optional>
-#include <string_view>
 
 
 namespace NCompileTimeJsonParser { 
@@ -23,9 +22,9 @@ namespace NCompileTimeJsonParser {
         TLinePositionCounter ElemBegLpCounter = {};
         TLinePositionCounter ElemEndLpCounter = {};
     private:
-        constexpr auto SetError(NError::TError&& err) -> void {
+        constexpr auto SetError(const NError::TError& err) -> void {
             CurElemBegPos = std::string_view::npos;
-            ErrorOpt.emplace(std::move(err));
+            ErrorOpt.emplace(err);
         }
     public:
         constexpr auto IsEnd() const -> bool {
@@ -37,7 +36,7 @@ namespace NCompileTimeJsonParser {
         constexpr auto Error() const -> const NError::TError& {
             return ErrorOpt.value();
         }
-        constexpr auto GetBegLpCounter() const -> const TLinePositionCounter& {
+        constexpr auto GetBegLpCounter() const -> TLinePositionCounter {
             return ElemBegLpCounter;
         }
 
@@ -67,7 +66,7 @@ namespace NCompileTimeJsonParser {
                 delimiter
             );
             if (nextPosOrErr.HasError()) {
-                SetError(std::move(nextPosOrErr.Error()));
+                SetError(nextPosOrErr.Error());
                 return;
             }
             CurElemEndPos = nextPosOrErr.Value();
@@ -98,7 +97,7 @@ namespace NCompileTimeJsonParser {
                 );
                 ElemBegLpCounter = ElemEndLpCounter;
                 if (nextPosOrErr.HasError()) {
-                    SetError(std::move(nextPosOrErr.Error()));
+                    SetError(nextPosOrErr.Error());
                     return *this;
                 }
                 CurElemBegPos = nextPosOrErr.Value(); 
@@ -112,7 +111,7 @@ namespace NCompileTimeJsonParser {
                     secondDelimiter
                 );
                 if (nextPosOrErr.HasError()) {
-                    SetError(std::move(nextPosOrErr.Error()));
+                    SetError(nextPosOrErr.Error());
                     return *this;
                 }
                 CurElemEndPos = nextPosOrErr.Value();
@@ -124,7 +123,7 @@ namespace NCompileTimeJsonParser {
             if (ErrorOpt) return ErrorOpt.value();
             if (IsEnd()) return NError::Error(
                 ElemBegLpCounter,
-                NError::ErrorCode::IteratorDereferenceError
+                NError::ErrorCode::EndIteratorDereferenceError
             );
             return TJsonValue{
                 Data.substr(CurElemBegPos, CurElemEndPos - CurElemBegPos),

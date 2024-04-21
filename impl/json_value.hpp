@@ -6,8 +6,6 @@
 #include "expected.hpp"
 #include "utils.hpp"
 
-#include <string_view>
-
 
 namespace NCompileTimeJsonParser {
     constexpr TJsonValue::TJsonValue(std::string_view data, const TLinePositionCounter& lpCounter)
@@ -78,7 +76,8 @@ namespace NCompileTimeJsonParser {
                 NError::ErrorCode::SyntaxError
             ); else return Error(
                 LpCounter,
-                NError::ErrorCode::TypeError
+                NError::ErrorCode::TypeError,
+                "expected string, got something else"
             );
         }
         if (Data[0] == '"' && Data.back() != '"') return Error(
@@ -91,7 +90,8 @@ namespace NCompileTimeJsonParser {
         );
         if (Data[0] != '"' && Data.back() != '"') return Error(
             LpCounter,
-            NError::ErrorCode::TypeError
+            NError::ErrorCode::TypeError,
+            "expected str, got sth else"
         ); 
         return Data.substr(1, Data.size() - 2);
     }
@@ -103,7 +103,7 @@ namespace NCompileTimeJsonParser {
             "empty underlying data while expecting an array"
         );
         if (Data[0] == '[' && Data.back() != ']') return Error(
-            LpCounter.Copy().Process(Data).StepBack(),
+            LpCounter.Copy().Process(Data.substr(0, Data.size() - 1)),
             NError::ErrorCode::SyntaxError,
             "a closing square bracket is probably missing "
             "at the end of an array"
@@ -122,7 +122,7 @@ namespace NCompileTimeJsonParser {
         );
         return TJsonArray{
             Data.substr(1, Data.size() - 2),
-            LpCounter.Copy().Process(Data[0])
+            LpCounter
         };
     }
 
@@ -137,7 +137,7 @@ namespace NCompileTimeJsonParser {
             "empty underlying data while expecting a mapping"
         );
         if (Data[0] == '{' && Data.back() != '}') return Error(
-            LpCounter.Copy().Process(Data).StepBack(),
+            LpCounter.Copy().Process(Data.substr(0, Data.size() - 1)),
             NError::ErrorCode::SyntaxError,
             "a closing curly brace ('}') is probably missing "
             "at the end of a mapping"

@@ -1,13 +1,11 @@
 #pragma once
 
 
-#include "api.hpp"
 #include "error.hpp"
 #include "expected.hpp"
 #include "line_position_counter.hpp"
 
 #include <string>
-#include <string_view>
 
 
 namespace NCompileTimeJsonParser::NUtils {
@@ -30,17 +28,11 @@ namespace NCompileTimeJsonParser::NUtils {
     ) -> std::string_view::size_type {
         if (startPos == std::string_view::npos) return startPos;
         auto pos = startPos;
-        auto prevLpCounter = lpCounter.Copy();
         for (char ch : str.substr(startPos)) {
-            prevLpCounter = lpCounter;
+            if (predicate(ch)) return pos;
             lpCounter.Process(ch);
-            if (predicate(ch)) {
-                lpCounter = prevLpCounter;
-                return pos;
-            }
             ++pos;
         }
-        lpCounter = prevLpCounter;
         return std::string_view::npos;
     }
 
@@ -50,51 +42,41 @@ namespace NCompileTimeJsonParser::NUtils {
         TLinePositionCounter& lpCounter,
         Predicate&& predicate,
         std::string_view::size_type pos = 0
-    ) -> TExpected<std::string_view::size_type> {
-        auto stack = std::string{};
-        stack.reserve(100);
+    ) -> TExpected<std::string_view::size_type> { 
         if (str.size() <= pos) return std::string_view::npos;
+        auto stack = std::string{};
+        auto prevLpCounter = lpCounter;
         for (char ch : str.substr(pos)) {
-            lpCounter.Process(ch);
-            if (ch == '[' || ch == '{') {
-                stack.push_back(ch);
-            } else if (ch == ']') {
-                if (stack.empty() || stack.back() != '[') {
-                    lpCounter.StepBack();
-                    return Error(
+            switch (ch) {
+                case '[':
+                case '{':
+                    stack.push_back(ch); break;
+                case ']':
+                    if (stack.empty() || stack.back() != '[') return Error(
                         lpCounter,
                         NError::ErrorCode::SyntaxError,
-                        "brackets mismatch: encountered an excess ']'"
+                        "brackets mismatch: encounterlpCountered an excess ']'"
                     );
-                }
-                stack.pop_back();
-            } else if (ch == '}') {
-                // TODO: distinguish between these two errors
-                if (stack.empty() || stack.back() != '{') {
-                    lpCounter.StepBack();
-                    return Error(
+                    stack.pop_back(); break;
+                case '}':
+                    if (stack.empty() || stack.back() != '{') return Error(
                         lpCounter,
                         NError::ErrorCode::SyntaxError,
                         "brackets mismatch: encountered an excess '}'"
                     );
-                }
-                stack.pop_back();
-            };
+                    stack.pop_back(); break;
+            } 
             const auto balance = stack.size();
-            if (balance == 0 && predicate(ch)) {
-                lpCounter.StepBack();
-                return pos;
-            }
+            if (balance == 0 && predicate(ch)) return pos;
+            prevLpCounter = lpCounter;
+            lpCounter.Process(ch);
             ++pos;
         }
-        if (const auto balance = stack.size(); balance != 0) {
-            lpCounter.StepBack();
-            return Error(
-                lpCounter,
-                NError::ErrorCode::SyntaxError,
-                "brackets mismatch: encountered some unmatched opening brackets"
-            );
-        }
+        if (const auto balance = stack.size(); balance != 0) return Error(
+            prevLpCounter,
+            NError::ErrorCode::SyntaxError,
+            "brackets mismatch: encountered some unmatched opening brackets"
+        );
         return std::string_view::npos;
     }
 
@@ -105,19 +87,14 @@ namespace NCompileTimeJsonParser::NUtils {
         char delimiter = ','
     ) -> TExpected<std::string_view::size_type> {
         if (pos == std::string_view::npos) return pos;
-        {
-            const auto result = FindFirstOfWithZeroBracketBalance(
-                str, lpCounter,
-                [delimiter](char ch) { return ch == delimiter; },
-                pos
-            );
-            if (result.HasError()) return result;
-            pos = result.Value();
-        }
-        if (pos == std::string_view::npos) return pos;
-        lpCounter.Process(str[pos]);
-        return FindFirstOf(
+        const auto result = FindFirstOfWithZeroBracketBalance(
             str, lpCounter,
+            [delimiter](char ch) { return ch == delimiter; },
+            pos
+        ); if (result.HasError()) return result;
+        pos = result.Value(); if (pos == std::string_view::npos) return pos;
+        return FindFirstOf(
+            str, lpCounter.Process(str[pos]),
             [](char ch) { return !IsSpace(ch); },
             pos + 1
         );
