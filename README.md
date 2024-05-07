@@ -1,5 +1,6 @@
 ## A fast compile- and run-time json parser written in C++20
 
+### Description
 This is a fast and efficient json parser written in C++20 that
 - works both at compile- and run-time
 - uses only STL, doesn't have any external dependencies
@@ -11,6 +12,11 @@ This is a fast and efficient json parser written in C++20 that
 - has efficient monadic error-handling which is straightforward and gives a lot of useful information, including the line number and position of the error and is thread- and memory-safe (see **Error handling** section)
 
 ### Usage
+
+The parser implementation is header-only, so, to use it, it's enough to `#include parser.hpp` in your code. All the code is located in the namespace `NJsonParser`.
+
+Below are some code snippets that show how to use the parser for basic tasks:
+
 - At compile-time (see `examples/example_compile_time.cpp`)
   ```cpp
     #include "../parser.hpp"
@@ -47,7 +53,7 @@ This is a fast and efficient json parser written in C++20 that
     // Similarly to the first example, the type of `caba` is `Expected<Array>`
     static_assert(std::same_as<decltype(caba), const Expected<Array>>);
     static_assert(caba.HasValue());
-    // `Expected<Array>` has the `.size()` method, which returns `Expected<size_t>`:
+    // `Expected<Array>` has the `.size()` method, which returns an instance of `Expected<size_t>`:
     static_assert(std::same_as<decltype(caba.size()), Expected<size_t>>);
     static_assert(caba.size() == 5);
 
@@ -145,7 +151,7 @@ This is a fast and efficient json parser written in C++20 that
     // Try to read an array from json mapping by key:
     const auto caba = json["caba"].As<Array>();
     assert(caba.HasValue());
-    // `Expected<Array>` has the `.size()` method, which returns `Expected<size_t>`:
+    // `Expected<Array>` has the `.size()` method, which returns an instance of `Expected<size_t>`:
     assert(caba.size() == 5);
 
     // The same can be done with strings:
@@ -217,3 +223,27 @@ This is a fast and efficient json parser written in C++20 that
     assert((numbers == std::vector<Int>{1, 2, 4}));
     assert((strings == std::vector<String>{"fizz", "buzz"}));
   ```
+
+### Tests
+
+The tests are located in the `tests` directory. Each test is written in its own `.cpp` file with an appropriate name. The source code of the tests includes comments that help to understand what is going on.
+
+To build the tests with `gcc`, just run the following command in terminal:
+```console
+$ g++ --std=c++20 tests/* -o run_tests
+```
+To build the tests with `clang`:
+```console
+$ clang++ --std=c++20 tests/* -o run_tests
+```
+To run the tests after building:
+```console
+$ ./run_tests
+```
+
+### Code structure
+
+The implementation of the parser is split into several header files in `impl` directory. These header files are as follows:
+| Header file | Contents |
+| ----------- |----------|
+| `api.hpp`   | Definitions of all types that represent json data (i.e. `int`, `double`, `string`, `array`, `mapping`) in the library code |
