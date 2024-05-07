@@ -5,7 +5,7 @@
 #include "error.hpp"
 
 
-namespace NCompileTimeJsonParser {
+namespace NJsonParser {
     // A mixin class template which provides some convenient operations
     // like those of c++23 `std::expected<T, E>`, but with E = `NError::TError`.
     template <class T>

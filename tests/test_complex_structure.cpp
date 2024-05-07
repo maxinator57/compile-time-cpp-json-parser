@@ -1,7 +1,7 @@
 #include "../parser.hpp"
 
 
-using namespace NCompileTimeJsonParser;
+using namespace NJsonParser;
 
 
 auto TestComplexStructure() -> void {
@@ -52,8 +52,8 @@ auto TestComplexStructure() -> void {
 
         constexpr auto rightLookup = json["params"]["cpp_standard"].AsInt();
         static_assert(rightLookup.HasValue());
-        // returns a `const NCompileTimeJsonParser::Int&`
-        static_assert(std::is_same_v<decltype(rightLookup.Value()), const NCompileTimeJsonParser::Int&>);
+        // returns a `const NJsonParser::Int&`
+        static_assert(std::is_same_v<decltype(rightLookup.Value()), const NJsonParser::Int&>);
         static_assert(rightLookup.Value() == 20);
     }
 }

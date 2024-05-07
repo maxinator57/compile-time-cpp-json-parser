@@ -5,7 +5,7 @@
 #include <string_view>
 
 
-namespace NCompileTimeJsonParser {
+namespace NJsonParser {
     struct TLinePositionCounter {
         uint16_t LineNumber = 0;
         uint16_t Position = 0;

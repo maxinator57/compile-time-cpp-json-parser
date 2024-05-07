@@ -1,7 +1,7 @@
 #include "../parser.hpp"
 
 
-using namespace NCompileTimeJsonParser;
+using namespace NJsonParser;
 
 
 auto TestBasicValueParsing() -> void { 

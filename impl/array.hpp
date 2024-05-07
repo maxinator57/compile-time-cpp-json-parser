@@ -6,7 +6,7 @@
 #include "iterator.hpp"
 
 
-namespace NCompileTimeJsonParser {
+namespace NJsonParser {
     constexpr TJsonArray::TJsonArray(std::string_view data, const TLinePositionCounter& lpCounter) noexcept
         : TDataHolderMixin(data, lpCounter) {}
 

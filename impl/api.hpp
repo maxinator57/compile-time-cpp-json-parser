@@ -4,7 +4,7 @@
 #include "data_holder.hpp"
 
 
-namespace NCompileTimeJsonParser {
+namespace NJsonParser {
     // A custom type like c++23 `std::expected`
     template <class T> struct TExpected; 
 

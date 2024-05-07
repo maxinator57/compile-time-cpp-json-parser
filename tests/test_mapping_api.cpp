@@ -3,7 +3,7 @@
 #include <cassert>
 
 
-using namespace NCompileTimeJsonParser;
+using namespace NJsonParser;
 
 
 auto TestMappingAPI() -> void {

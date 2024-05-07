@@ -8,7 +8,7 @@
 #include <variant>
 
 
-namespace NCompileTimeJsonParser::NError {
+namespace NJsonParser::NError {
     // Contains codes for all errors that may occur
     // when using this json parser
     enum class ErrorCode : uint8_t {

@@ -4,7 +4,7 @@
 #include "line_position_counter.hpp"
 
 
-namespace NCompileTimeJsonParser {
+namespace NJsonParser {
     // A mixin class that provides the functionality of
     //   1. holding a `std::string_view` to a (part of) text containing json struct representation and
     //   2. keeping track of the current line and position in the original text using `TLinePositionCounter`

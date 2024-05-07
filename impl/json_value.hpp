@@ -7,7 +7,7 @@
 #include "utils.hpp"
 
 
-namespace NCompileTimeJsonParser {
+namespace NJsonParser {
     constexpr TJsonValue::TJsonValue(std::string_view data, const TLinePositionCounter& lpCounter)
         : TDataHolderMixin(NUtils::StripSpaces(data), lpCounter) {}
 
@@ -190,4 +190,4 @@ namespace NCompileTimeJsonParser {
     constexpr auto TExpected<TJsonValue>::operator[](std::string_view key) const -> TExpected<TJsonValue> {
         return AsMapping()[key];
     }
-} // namespace NCompileTimeJsonParser
+} // namespace NJsonParser

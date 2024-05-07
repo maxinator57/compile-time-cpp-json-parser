@@ -8,7 +8,7 @@
 #include <string>
 
 
-namespace NCompileTimeJsonParser::NUtils {
+namespace NJsonParser::NUtils {
     constexpr auto kSpaces = std::string_view{" \t\n"};
     constexpr auto IsSpace(char ch) -> bool {
         return kSpaces.find(ch) != std::string_view::npos;

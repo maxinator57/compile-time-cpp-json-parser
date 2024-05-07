@@ -5,7 +5,7 @@
 #include <vector>
 
 
-using namespace NCompileTimeJsonParser;
+using namespace NJsonParser;
 
 
 auto TestArrayErrorHandling() -> void {

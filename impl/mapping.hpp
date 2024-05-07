@@ -8,7 +8,7 @@
 #include "line_position_counter.hpp"
 
 
-namespace NCompileTimeJsonParser {
+namespace NJsonParser {
     constexpr TJsonMapping::TJsonMapping(std::string_view data, const TLinePositionCounter& lpCounter)
         : TDataHolderMixin(data, lpCounter) {}
 
@@ -100,4 +100,4 @@ namespace NCompileTimeJsonParser {
     constexpr auto TExpected<TJsonMapping>::size() const noexcept -> TExpected<size_t> {
         return HasValue() ? TExpected<size_t>{Value().size()} : Error();
     }
-} // namespace NCompileTimeJsonParser
+} // namespace NJsonParser

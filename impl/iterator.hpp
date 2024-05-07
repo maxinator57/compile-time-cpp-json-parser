@@ -10,7 +10,7 @@
 #include <optional>
 
 
-namespace NCompileTimeJsonParser { 
+namespace NJsonParser {
     class TGenericSerializedSequenceIterator {
     private:
         using TSelf = TGenericSerializedSequenceIterator;

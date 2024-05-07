@@ -4,7 +4,7 @@
 #include <sstream>
 
 
-using namespace NCompileTimeJsonParser;
+using namespace NJsonParser;
 
 
 auto TestBasicErrorHandling() -> void {
