@@ -104,7 +104,7 @@ namespace NJsonParser::NError {
             uint16_t LineNumber = 0;
             uint16_t Position = 0;
             ErrorCode Code;
-            constexpr auto operator==(const TBasicInfo& other) const -> bool = default;
+            constexpr auto operator==(const TBasicInfo& other) const noexcept -> bool = default;
         } BasicInfo;
         // On x86-64 architectures `sizeof(std::string_view)`
         // == `sizeof(ArrayIndexOutOfRangeAdditionalInfo)`

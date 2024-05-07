@@ -9,7 +9,7 @@
 
 
 namespace NJsonParser {
-    constexpr Mapping::Mapping(std::string_view data, LinePositionCounter lpCounter)
+    constexpr Mapping::Mapping(std::string_view data, LinePositionCounter lpCounter) noexcept
         : DataHolderMixin(data, lpCounter) {}
 
     class Mapping::Iterator {
@@ -55,17 +55,17 @@ namespace NJsonParser {
         constexpr auto operator==(const Iterator& other) const -> bool = default;
     };
 
-    constexpr auto Mapping::begin() const -> Iterator { 
+    constexpr auto Mapping::begin() const noexcept -> Iterator { 
         return GenericSerializedSequenceIterator::Begin(Data, LpCounter, ':');
     }
 
-    constexpr auto Mapping::end() const -> Iterator {
+    constexpr auto Mapping::end() const noexcept -> Iterator {
         return GenericSerializedSequenceIterator::End(Data, LpCounter);
     }
 
-    constexpr auto Mapping::operator[](std::string_view key) const -> Expected<JsonValue> {
-        auto it = begin();
-        for (; it != end(); ++it) {
+    constexpr auto Mapping::operator[](std::string_view key) const noexcept -> Expected<JsonValue> { 
+        const auto finish = end();
+        for (auto it = begin(); it != finish; ++it) {
             const auto [k, v] = *it;
             if (k.HasError()) return k.Error();
             if (v.HasError()) return v.Error();
@@ -78,9 +78,10 @@ namespace NJsonParser {
         );
     }
 
-    constexpr auto Mapping::size() const -> size_t {
+    constexpr auto Mapping::size() const noexcept -> size_t {
         size_t counter = 0;
-        for (auto it = begin(); it != end(); ++it, ++counter);
+        const auto finish = end();
+        for (auto it = begin(); it != finish; ++it, ++counter);
         return counter;
     }
 

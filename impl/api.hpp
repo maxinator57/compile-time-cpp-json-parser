@@ -40,24 +40,24 @@ namespace NJsonParser {
 
     class Mapping : public DataHolderMixin {
     private:
-        constexpr Mapping(std::string_view, LinePositionCounter);
+        constexpr Mapping(std::string_view, LinePositionCounter) noexcept;
         friend class JsonValue;
     public:
-        constexpr auto operator[](std::string_view key) const -> Expected<JsonValue>;
-        constexpr auto size() const -> size_t;
+        constexpr auto operator[](std::string_view key) const noexcept -> Expected<JsonValue>;
+        constexpr auto size() const noexcept -> size_t;
         class Iterator;
-        constexpr auto begin() const -> Iterator;
-        constexpr auto end() const -> Iterator;
+        constexpr auto begin() const noexcept -> Iterator;
+        constexpr auto end() const noexcept -> Iterator;
     }; 
 
 
     class JsonValue : public DataHolderMixin {
     public:
-        constexpr JsonValue(std::string_view, LinePositionCounter = {});
-        template <CJsonType T> constexpr auto As() const -> Expected<T>;
+        constexpr JsonValue(std::string_view, LinePositionCounter = {}) noexcept;
+        template <CJsonType T> constexpr auto As() const noexcept -> Expected<T>;
         // Same effect as `.As<Array>()[idx]`
-        constexpr auto operator[](size_t idx) const -> Expected<JsonValue>;
+        constexpr auto operator[](size_t idx) const noexcept -> Expected<JsonValue>;
         // Same effect as `.As<Mapping>()[key]`
-        constexpr auto operator[](std::string_view key) const -> Expected<JsonValue>;
+        constexpr auto operator[](std::string_view key) const noexcept -> Expected<JsonValue>;
     }; 
 }

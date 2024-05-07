@@ -34,7 +34,7 @@ namespace NJsonParser {
 
         constexpr auto operator==(const ExpectedMixin<T>& other) const noexcept(
             noexcept(std::declval<T>() == std::declval<T>())
-         && noexcept(Error() == other.Error())
+         && noexcept(std::declval<NError::Error>() == std::declval<NError::Error>())
         ) -> bool {
             static_assert(noexcept(std::declval<NError::Error>() == std::declval<NError::Error>()));
             if (HasValue() && other.HasValue()) return Value() == other.Value();
@@ -52,7 +52,7 @@ namespace NJsonParser {
         // The comparison happens without the invocation of `ExpectedMixin` constructor
         template <class U>
         requires std::same_as<U, NError::Error>
-        constexpr auto operator==(const U& otherError) const -> bool {
+        constexpr auto operator==(const U& otherError) const noexcept -> bool {
             return HasError() && Error() == otherError;
         }
     };
@@ -60,7 +60,7 @@ namespace NJsonParser {
     // The general `Expected` template
     template <class T>
     struct Expected : public ExpectedMixin<T> {
-        // Bring constructor from mixin to class scope
+        // Bring constructor from mixin to class scope:
         using ExpectedMixin<T>::ExpectedMixin;
     };
 

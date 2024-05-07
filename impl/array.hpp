@@ -53,7 +53,8 @@ namespace NJsonParser {
 
     constexpr auto Array::operator[](size_t idx) const noexcept -> Expected<JsonValue> { 
         size_t counter = 0;
-        auto it = begin(), finish = end();
+        auto it = begin();
+        const auto finish = end();
         for (; it != finish && !it.Iter.HasError() && counter < idx; ++it, ++counter);
         if (it.Iter.HasError()) return it.Iter.Error();
         if (it == finish) return MakeError(
@@ -69,7 +70,8 @@ namespace NJsonParser {
 
     constexpr auto Array::size() const noexcept -> size_t {
         size_t counter = 0;
-        for (auto it = begin(); it != end(); ++it, ++counter);
+        const auto finish = end();
+        for (auto it = begin(); it != finish; ++it, ++counter);
         return counter; 
     }
 

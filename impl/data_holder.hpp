@@ -19,10 +19,10 @@ namespace NJsonParser {
     public:
         constexpr DataHolderMixin(std::string_view data, LinePositionCounter lpCounter) noexcept
             : Data(data), LpCounter(lpCounter) {}
-        constexpr auto GetData() const -> std::string_view {
+        constexpr auto GetData() const noexcept -> std::string_view {
             return Data;
         }
-        constexpr auto GetLpCounter() const -> LinePositionCounter {
+        constexpr auto GetLpCounter() const noexcept -> LinePositionCounter {
             return LpCounter;
         }
     };

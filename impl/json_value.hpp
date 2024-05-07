@@ -10,10 +10,10 @@
 
 
 namespace NJsonParser {
-    constexpr JsonValue::JsonValue(std::string_view data, LinePositionCounter lpCounter)
+    constexpr JsonValue::JsonValue(std::string_view data, LinePositionCounter lpCounter) noexcept
         : DataHolderMixin(NUtils::StripSpaces(data), lpCounter) {}
 
-    template <> constexpr auto JsonValue::As<Int>() const -> Expected<Int> {
+    template <> constexpr auto JsonValue::As<Int>() const noexcept -> Expected<Int> {
         if (Data.empty()) return MakeError(
             LpCounter,
             NError::ErrorCode::MissingValueError
@@ -36,15 +36,15 @@ namespace NJsonParser {
             }
         } else {
             // At run-time we use the fast library function `std::from_chars`
-            const auto fromCharsResult = std::from_chars(
+            const auto [_, ec] = std::from_chars(
                 Data.data(), Data.data() + Data.size(), result, 10
             );
-            if (fromCharsResult.ec == std::errc::invalid_argument) return MakeError(
+            if (ec == std::errc::invalid_argument) return MakeError(
                 LpCounter,
                 NError::ErrorCode::TypeError,
                 "expected int, got something else"
             );
-            if (fromCharsResult.ec == std::errc::result_out_of_range) return MakeError(
+            if (ec == std::errc::result_out_of_range) return MakeError(
                 LpCounter,
                 NError::ErrorCode::ResultOutOfRangeError
             );
@@ -52,7 +52,7 @@ namespace NJsonParser {
         return result;
     }
 
-    template <> constexpr auto JsonValue::As<Double>() const -> Expected<Double> {
+    template <> constexpr auto JsonValue::As<Double>() const noexcept -> Expected<Double> {
         if (std::is_constant_evaluated()) {
             // At compile-time we have to parse a double by hand
             const auto dotPosition = Data.find_first_of('.');
@@ -117,7 +117,7 @@ namespace NJsonParser {
         }
     }
 
-    template <> constexpr auto JsonValue::As<String>() const -> Expected<String> {
+    template <> constexpr auto JsonValue::As<String>() const noexcept -> Expected<String> {
         if (Data.empty()) return MakeError(
             LpCounter,
             NError::ErrorCode::MissingValueError,
@@ -156,7 +156,7 @@ namespace NJsonParser {
         return Data.substr(1, Data.size() - 2);
     }
 
-    template <> constexpr auto JsonValue::As<Array>() const -> Expected<Array> {
+    template <> constexpr auto JsonValue::As<Array>() const noexcept -> Expected<Array> {
         if (Data.empty()) return MakeError(
             LpCounter,
             NError::ErrorCode::MissingValueError,
@@ -186,11 +186,11 @@ namespace NJsonParser {
         };
     }
 
-    constexpr auto JsonValue::operator[](size_t idx) const -> Expected<JsonValue> {
+    constexpr auto JsonValue::operator[](size_t idx) const noexcept -> Expected<JsonValue> {
         return As<Array>()[idx];
     }
 
-    template <> constexpr auto JsonValue::As<Mapping>() const -> Expected<Mapping> {
+    template <> constexpr auto JsonValue::As<Mapping>() const noexcept -> Expected<Mapping> {
         if (Data.empty()) return MakeError(
             LpCounter,
             NError::ErrorCode::MissingValueError,
@@ -220,7 +220,7 @@ namespace NJsonParser {
         };
     }
 
-    constexpr auto JsonValue::operator[](std::string_view key) const -> Expected<JsonValue> {
+    constexpr auto JsonValue::operator[](std::string_view key) const noexcept -> Expected<JsonValue> {
         return As<Mapping>()[key];
     }
 
