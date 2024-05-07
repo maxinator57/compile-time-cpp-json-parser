@@ -9,7 +9,7 @@ using namespace NJsonParser;
 
 
 auto TestArrayErrorHandling() -> void {
-    static constexpr auto json = TJsonValue{
+    static constexpr auto json = JsonValue{
         /* line numbers: */
         /* 0 */ "[                \n"
         /* 1 */ "    [1, 2, 3],   \n"
@@ -24,11 +24,11 @@ auto TestArrayErrorHandling() -> void {
     // reading the first three arrays is fine.
     
     {   // Compute the sum of elements of the first array using `std::accumulate`
-        constexpr auto zeroth = json[0].AsArray();
+        constexpr auto zeroth = json[0].As<Array>();
         constexpr auto zerothSum = std::accumulate(
             zeroth.begin(), zeroth.end(), 0,
-            [](int sum, auto arrayElem){
-                return sum + arrayElem.AsInt().Value(); // unsafe to call `.Value()` without
+            [](int sum, Expected<JsonValue> arrayElem){
+                return sum + arrayElem.As<Int>().Value(); // unsafe to call `.Value()` without
                                                         // checking for `.HasValue()` first,
                                                         // but will do for a demo
         });
@@ -36,17 +36,17 @@ auto TestArrayErrorHandling() -> void {
     }
 
     {
-        constexpr auto first = json[1].AsArray();
-        static_assert(first[0].AsInt() == 4);
+        constexpr auto first = json[1].As<Array>();
+        static_assert(first[0].As<Int>() == 4);
         static_assert(first[1].HasError()); // index 1 is out of range for the array `[4]`
         // As shown by error message
-        static_assert(first[1].Error() == NError::TError{
+        static_assert(first[1].Error() == NError::Error{
             .BasicInfo = {
                 .LineNumber = 2,
                 .Position = 4, // points at the start of the array (an opening square bracket ('['))
                 .Code = NError::ErrorCode::ArrayIndexOutOfRange,
             },
-            .AdditionalInfo = NError::TArrayIndexOutOfRangeAdditionalInfo{
+            .AdditionalInfo = NError::ArrayIndexOutOfRangeAdditionalInfo{
                 .Index = 1,
                 .ArrayLen = 1,
             },
@@ -54,20 +54,20 @@ auto TestArrayErrorHandling() -> void {
     }
 
     {
-        constexpr auto second = json[2].AsArray();
+        constexpr auto second = json[2].As<Array>();
         auto vec = std::vector<int>{}; vec.reserve(second.size().Value()); // need to call `.Value()`,
-                                                                           // because `secondArr` has type `TExpected<TArray>`,
-                                                                           // not just `TArray`
-        static_assert(second.size().Value() == second.Value().size()); // it's not important where exactly the unwrapping of `TExpected<T>`
+                                                                           // because `secondArr` has type `Expected<Array>`,
+                                                                           // not just `Array`
+        static_assert(second.size().Value() == second.Value().size()); // it's not important where exactly the unwrapping of `Expected<T>`
                                                                        // to an instance of `T` happens by calling the `.Value()` method
         for (const auto elem : second) {
-            vec.push_back(elem.AsInt().Value());
+            vec.push_back(elem.As<Int>().Value());
         }
         assert((vec == std::vector{5, 6}));
     }
 
     {
-        constexpr auto third = json[3].AsArray();
+        constexpr auto third = json[3].As<Array>();
         static_assert(third.HasError());
         // In fact, the error emitted in this example should rather be
         // something like "SyntaxError (a closing square bracket is 
@@ -76,7 +76,7 @@ auto TestArrayErrorHandling() -> void {
         // for it to make such a guess. So we have to be content with at
         // least some useful information in this case (although not 
         // particularly helpful)
-        static_assert(third.Error() == NError::TError{
+        static_assert(third.Error() == NError::Error{
             .BasicInfo = {
                 .LineNumber = 4,
                 .Position = 12,
@@ -88,13 +88,13 @@ auto TestArrayErrorHandling() -> void {
 
     {
         // This error actually emerges not at the last step (when 
-        // calling `.AsArray()` for the second time), but rather
+        // calling `.As<Array>()` for the second time), but rather
         // when invoking the `[]` operator
-        constexpr auto arr = json.AsArray();
+        constexpr auto arr = json.As<Array>();
         static_assert(arr.HasValue()); // no error yet
         constexpr auto third = arr[3]; // error occurs here
         static_assert(third.HasError());
-        static_assert(third.Error() == NError::TError{
+        static_assert(third.Error() == NError::Error{
             .BasicInfo = {
                 .LineNumber = 4,
                 .Position = 12,

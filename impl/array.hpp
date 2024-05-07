@@ -7,22 +7,22 @@
 
 
 namespace NJsonParser {
-    constexpr TJsonArray::TJsonArray(std::string_view data, const TLinePositionCounter& lpCounter) noexcept
-        : TDataHolderMixin(data, lpCounter) {}
+    constexpr Array::Array(std::string_view data, const LinePositionCounter& lpCounter) noexcept
+        : DataHolderMixin(data, lpCounter) {}
 
-    class TJsonArray::Iterator {
+    class Array::Iterator {
     private:
-        TGenericSerializedSequenceIterator Iter;
-        friend class TJsonArray;
-        friend struct TExpected<TJsonArray>;
+        GenericSerializedSequenceIterator Iter;
+        friend class Array;
+        friend struct Expected<Array>;
     private:
-        constexpr Iterator(TGenericSerializedSequenceIterator&& iter)
+        constexpr Iterator(GenericSerializedSequenceIterator&& iter)
             : Iter(std::move(iter)) {}
     public:
         using difference_type = int;
-        using value_type = TExpected<TJsonValue>;
+        using value_type = Expected<JsonValue>;
     public:
-        constexpr Iterator() : Iterator(TGenericSerializedSequenceIterator::End({}, {})) {};
+        constexpr Iterator() : Iterator(GenericSerializedSequenceIterator::End({}, {})) {};
         constexpr auto operator*() const -> value_type { return *Iter; }
         constexpr auto operator++() -> Iterator& {
             Iter.StepForward(',', ',');
@@ -36,30 +36,30 @@ namespace NJsonParser {
         constexpr auto operator==(const Iterator& other) const -> bool = default;
     };
 
-    constexpr auto TJsonArray::begin() const noexcept -> Iterator { 
-        return TGenericSerializedSequenceIterator::Begin(
+    constexpr auto Array::begin() const noexcept -> Iterator { 
+        return GenericSerializedSequenceIterator::Begin(
             Data,
             LpCounter.Copy().Process('['),
             ','
         );
     }
 
-    constexpr auto TJsonArray::end() const noexcept -> Iterator {
-        return TGenericSerializedSequenceIterator::End(
+    constexpr auto Array::end() const noexcept -> Iterator {
+        return GenericSerializedSequenceIterator::End(
             Data,
             LpCounter.Copy().Process('[')
         );
     }
 
-    constexpr auto TJsonArray::operator[](size_t idx) const noexcept -> TExpected<TJsonValue> { 
+    constexpr auto Array::operator[](size_t idx) const noexcept -> Expected<JsonValue> { 
         size_t counter = 0;
         auto it = begin(), finish = end();
         for (; it != finish && !it.Iter.HasError() && counter < idx; ++it, ++counter);
         if (it.Iter.HasError()) return it.Iter.Error();
-        if (it == finish) return Error(
+        if (it == finish) return MakeError(
             LpCounter,
             NError::ErrorCode::ArrayIndexOutOfRange,
-            NError::TArrayIndexOutOfRangeAdditionalInfo{
+            NError::ArrayIndexOutOfRangeAdditionalInfo{
                 .Index = idx,
                 .ArrayLen = counter
             }
@@ -67,25 +67,25 @@ namespace NJsonParser {
         return *it;
     }
 
-    constexpr auto TJsonArray::size() const noexcept -> size_t {
+    constexpr auto Array::size() const noexcept -> size_t {
         size_t counter = 0;
         for (auto it = begin(); it != end(); ++it, ++counter);
         return counter; 
     }
 
-    constexpr auto TExpected<TJsonArray>::begin() const noexcept -> TJsonArray::Iterator {
-        return HasValue() ? Value().begin() : TJsonArray::Iterator{Error()};
+    constexpr auto Expected<Array>::begin() const noexcept -> Array::Iterator {
+        return HasValue() ? Value().begin() : Array::Iterator{Error()};
     }
 
-    constexpr auto TExpected<TJsonArray>::end() const noexcept -> TJsonArray::Iterator {
-        return HasValue() ? Value().end() : TJsonArray::Iterator{Error()};
+    constexpr auto Expected<Array>::end() const noexcept -> Array::Iterator {
+        return HasValue() ? Value().end() : Array::Iterator{Error()};
     } 
 
-    constexpr auto TExpected<TJsonArray>::operator[](size_t idx) const noexcept -> TExpected<TJsonValue> {
+    constexpr auto Expected<Array>::operator[](size_t idx) const noexcept -> Expected<JsonValue> {
         return HasValue() ? Value()[idx] : Error();
     }
 
-    constexpr auto TExpected<TJsonArray>::size() const noexcept -> TExpected<size_t> {
-        return HasValue() ? TExpected<size_t>{Value().size()} : Error();
+    constexpr auto Expected<Array>::size() const noexcept -> Expected<size_t> {
+        return HasValue() ? Expected<size_t>{Value().size()} : Error();
     }
 }

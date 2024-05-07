@@ -11,18 +11,18 @@
 
 
 namespace NJsonParser {
-    class TGenericSerializedSequenceIterator {
+    class GenericSerializedSequenceIterator {
     private:
-        using TSelf = TGenericSerializedSequenceIterator;
+        using Self = GenericSerializedSequenceIterator;
     private:
         std::string_view Data = {};
         std::string_view::size_type CurElemBegPos = {};
         std::string_view::size_type CurElemEndPos = {}; 
-        std::optional<NError::TError> ErrorOpt = {};
-        TLinePositionCounter ElemBegLpCounter = {};
-        TLinePositionCounter ElemEndLpCounter = {};
+        std::optional<NError::Error> ErrorOpt = {};
+        LinePositionCounter ElemBegLpCounter = {};
+        LinePositionCounter ElemEndLpCounter = {};
     private:
-        constexpr auto SetError(const NError::TError& err) -> void {
+        constexpr auto SetError(const NError::Error& err) -> void {
             CurElemBegPos = std::string_view::npos;
             ErrorOpt.emplace(err);
         }
@@ -33,16 +33,16 @@ namespace NJsonParser {
         constexpr auto HasError() const -> bool {
             return ErrorOpt.has_value();
         }
-        constexpr auto Error() const -> const NError::TError& {
+        constexpr auto Error() const -> const NError::Error& {
             return ErrorOpt.value();
         }
-        constexpr auto GetBegLpCounter() const -> TLinePositionCounter {
+        constexpr auto GetBegLpCounter() const -> LinePositionCounter {
             return ElemBegLpCounter;
         }
 
-        constexpr TGenericSerializedSequenceIterator(
+        constexpr GenericSerializedSequenceIterator(
             std::string_view data,
-            TLinePositionCounter lpCounter,
+            LinePositionCounter lpCounter,
             std::string_view::size_type startingPos,
             char delimiter
         )
@@ -72,21 +72,21 @@ namespace NJsonParser {
             CurElemEndPos = nextPosOrErr.Value();
         }
 
-        constexpr TGenericSerializedSequenceIterator(NError::TError err)
+        constexpr GenericSerializedSequenceIterator(NError::Error err)
             : CurElemBegPos(std::string_view::npos), ErrorOpt(std::move(err)) {}
 
         static constexpr auto Begin(
             std::string_view data,
-            TLinePositionCounter lpCounter,
+            LinePositionCounter lpCounter,
             char delimiter
-        ) -> TSelf { return {data, lpCounter, 0, delimiter}; }
+        ) -> Self { return {data, lpCounter, 0, delimiter}; }
 
         static constexpr auto End(
             std::string_view data, 
-            TLinePositionCounter lpCounter
-        ) -> TSelf { return {data, lpCounter, std::string_view::npos, {}}; }
+            LinePositionCounter lpCounter
+        ) -> Self { return {data, lpCounter, std::string_view::npos, {}}; }
 
-        constexpr auto StepForward(char firstDelimiter, char secondDelimiter) -> TSelf& {
+        constexpr auto StepForward(char firstDelimiter, char secondDelimiter) -> Self& {
             if (IsEnd()) return *this;
             {
                 auto nextPosOrErr = NUtils::FindNextElementStartPos(
@@ -119,19 +119,19 @@ namespace NJsonParser {
             return *this;
         }
 
-        constexpr auto operator*() const -> TExpected<TJsonValue> {
+        constexpr auto operator*() const -> Expected<JsonValue> {
             if (ErrorOpt) return ErrorOpt.value();
-            if (IsEnd()) return NError::Error(
+            if (IsEnd()) return NError::MakeError(
                 ElemBegLpCounter,
                 NError::ErrorCode::EndIteratorDereferenceError
             );
-            return TJsonValue{
+            return JsonValue{
                 Data.substr(CurElemBegPos, CurElemEndPos - CurElemBegPos),
                 ElemBegLpCounter
             };
         }
 
-        constexpr auto operator==(const TSelf& other) const -> bool {
+        constexpr auto operator==(const Self& other) const -> bool {
             return Data == other.Data && CurElemBegPos == other.CurElemBegPos;
         }
     };

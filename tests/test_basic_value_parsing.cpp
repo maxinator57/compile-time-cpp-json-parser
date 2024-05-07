@@ -8,19 +8,22 @@ using namespace NJsonParser;
 
 auto TestBasicValueParsing() -> void { 
     {   // Int
+
         // Compile-time:
-        static_assert(TJsonValue{"12345"}.AsInt() == 12345);
-        static_assert(TJsonValue{"-54321"}.AsInt() == -54321);
-        static_assert(TJsonValue{"0"}.AsInt() == 0);
-        static_assert(TJsonValue{"-0"}.AsInt() == 0);
+        static_assert(JsonValue{"12345" }.As<Int>() == 12345 );
+        static_assert(JsonValue{"-54321"}.As<Int>() == -54321);
+        static_assert(JsonValue{"0"     }.As<Int>() == 0     );
+        static_assert(JsonValue{"-0"    }.As<Int>() == 0     );
 
         // Run-time:
-        assert(TJsonValue{"12345"}.AsInt() == 12345);
-        assert(TJsonValue{"-54321"}.AsInt() == -54321);
-        assert(TJsonValue{"0"}.AsInt() == 0);
-        assert(TJsonValue{"-0"}.AsInt() == 0);
+        assert(JsonValue{"12345" }.As<Int>() == 12345 );
+        assert(JsonValue{"-54321"}.As<Int>() == -54321);
+        assert(JsonValue{"0"     }.As<Int>() == 0     );
+        assert(JsonValue{"-0"    }.As<Int>() == 0     );
 
-        auto err = TJsonValue{"12345678910111213141516171819202122"}.AsInt();
+        // When an integral value can't be represented by the `Int` type used by library,
+        // a `ResultOutOfRange` error is returned:
+        const auto err = JsonValue{"12345678910111213141516171819202122"}.As<Int>();
         assert(err.HasError());
         assert(err.Error().BasicInfo.Code == NJsonParser::NError::ErrorCode::ResultOutOfRangeError);
     }
@@ -29,65 +32,53 @@ auto TestBasicValueParsing() -> void {
         constexpr auto kEps = 1e-9;
 
         // Compile-time: 
-        static_assert(
-            std::abs(
-                TJsonValue{"12345.67891011"}.AsDouble().Value() - 12345.67891011
-            ) < kEps 
-        );
-        static_assert(
-            std::abs(
-                TJsonValue{"000.12131415"}.AsDouble().Value() - 0.12131415
-            ) < kEps
-        );
-        static_assert(
-            std::abs(
-                TJsonValue{"-16.17181920"}.AsDouble().Value() - (-16.17181920)
-            ) < kEps
-        );
-        static_assert(
-            std::abs(
-                TJsonValue{"12345"}.AsDouble().Value() - 12345
-            ) < kEps
-        );
+        static_assert(std::abs(JsonValue{"12345.67891011"}.As<Double>().Value() - 12345.67891011) < kEps);
+        static_assert(std::abs(JsonValue{"000.12131415"  }.As<Double>().Value() - 0.12131415    ) < kEps);
+        static_assert(std::abs(JsonValue{"-16.17181920"  }.As<Double>().Value() - (-16.17181920)) < kEps);
+        static_assert(std::abs(JsonValue{"12345"         }.As<Double>().Value() - 12345         ) < kEps);
 
         // Run-time:
-        assert(
-            std::abs(
-                TJsonValue{"12345.67891011"}.AsDouble().Value() - 12345.67891011
-            ) < kEps 
-        );
-        assert(
-            std::abs(
-                TJsonValue{"000.12131415"}.AsDouble().Value() - 0.12131415
-            ) < kEps
-        );
-        assert(
-            std::abs(
-                TJsonValue{"-16.17181920"}.AsDouble().Value() - (-16.17181920)
-            ) < kEps
-        );
-        assert(
-            std::abs(
-                TJsonValue{"12345"}.AsDouble().Value() - 12345
-            ) < kEps
-        );
+        assert(std::abs(JsonValue{"12345.67891011"}.As<Double>().Value() - 12345.67891011) < kEps);
+        assert(std::abs(JsonValue{"000.12131415"  }.As<Double>().Value() - 0.12131415    ) < kEps);
+        assert(std::abs(JsonValue{"-16.17181920"  }.As<Double>().Value() - (-16.17181920)) < kEps);
+        assert(std::abs(JsonValue{"12345"         }.As<Double>().Value() - 12345         ) < kEps);
     }
      
     {   // String
-        static_assert(TJsonValue{"\"abacaba\""}.AsString() == "abacaba");
-        static_assert(TJsonValue{"\"\""}.AsString() == "");
+        // Compile-time:
+        static_assert(JsonValue{"\"abacaba\""}.As<String>() == "abacaba");
+        static_assert(JsonValue{"\"\""       }.As<String>() == ""       );
+
+        // Run-time:
+        assert(JsonValue{"\"abacaba\""}.As<String>() == "abacaba");
+        assert(JsonValue{"\"\""       }.As<String>() == ""       );
     }
      
     {   // Array
-        constexpr auto arr = TJsonValue{"[1, 2, 3]"}.AsArray();
-        static_assert(arr[0].AsInt() == 1);
-        static_assert(arr[1].AsInt() == 2);
-        static_assert(arr[2].AsInt() == 3);
+        {   // Compile-time
+            constexpr auto arr = JsonValue{"[1, 2, 3]"};
+            static_assert(arr[0].As<Int>() == 1);
+            static_assert(arr[1].As<Int>() == 2);
+            static_assert(arr[2].As<Int>() == 3);
+        }
+        {   // Run-time
+            const auto arr = JsonValue{"[1, 2, 3]"};
+            assert(arr[0].As<Int>() == 1);
+            assert(arr[1].As<Int>() == 2);
+            assert(arr[2].As<Int>() == 3);
+        }
     }
 
     {   // Mapping
-        constexpr auto map = TJsonValue{"{\"aba\": 4, \"caba\": 5}"}.AsMapping();
-        static_assert(map["aba"].AsInt() == 4);
-        static_assert(map["caba"].AsInt() == 5);
+        {   // Compile-time
+            constexpr auto map = JsonValue{"{\"aba\": 4, \"caba\": 5}"};
+            static_assert(map["aba" ].As<Int>() == 4);
+            static_assert(map["caba"].As<Int>() == 5);
+        }
+        {   // Run-time
+            const auto map = JsonValue{"{\"aba\": 4, \"caba\": 5}"};
+            assert(map["aba" ].As<Int>() == 4);
+            assert(map["caba"].As<Int>() == 5);
+        }
     }
 }

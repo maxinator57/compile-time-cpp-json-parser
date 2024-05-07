@@ -9,17 +9,17 @@
 
 
 namespace NJsonParser {
-    constexpr TJsonMapping::TJsonMapping(std::string_view data, const TLinePositionCounter& lpCounter)
-        : TDataHolderMixin(data, lpCounter) {}
+    constexpr Mapping::Mapping(std::string_view data, const LinePositionCounter& lpCounter)
+        : DataHolderMixin(data, lpCounter) {}
 
-    class TJsonMapping::Iterator {
+    class Mapping::Iterator {
     private:
-        TGenericSerializedSequenceIterator KeyIter;
-        TGenericSerializedSequenceIterator ValIter;
-        friend class TJsonMapping;
-        friend struct TExpected<TJsonMapping>;
+        GenericSerializedSequenceIterator KeyIter;
+        GenericSerializedSequenceIterator ValIter;
+        friend class Mapping;
+        friend struct Expected<Mapping>;
     private:
-        constexpr Iterator(TGenericSerializedSequenceIterator&& iter)
+        constexpr Iterator(GenericSerializedSequenceIterator&& iter)
             : KeyIter(std::move(iter))
             , ValIter(KeyIter)
         {
@@ -29,15 +29,15 @@ namespace NJsonParser {
     public:
         using difference_type = int;
         struct value_type {
-            TExpected<String> Key;
-            TExpected<TJsonValue> Value;
+            Expected<String> Key;
+            Expected<JsonValue> Value;
         };
     public:
-        constexpr Iterator() : Iterator(TGenericSerializedSequenceIterator::End({}, {})) {};
+        constexpr Iterator() : Iterator(GenericSerializedSequenceIterator::End({}, {})) {};
         constexpr auto operator*() const -> value_type {
             // TODO: improve error handling here (return more specific errors when possible)
             return {
-                .Key = (*KeyIter).AsString(),
+                .Key = (*KeyIter).As<String>(),
                 .Value = *ValIter,
             };
         }
@@ -55,15 +55,15 @@ namespace NJsonParser {
         constexpr auto operator==(const Iterator& other) const -> bool = default;
     };
 
-    constexpr auto TJsonMapping::begin() const -> Iterator { 
-        return TGenericSerializedSequenceIterator::Begin(Data, LpCounter, ':');
+    constexpr auto Mapping::begin() const -> Iterator { 
+        return GenericSerializedSequenceIterator::Begin(Data, LpCounter, ':');
     }
 
-    constexpr auto TJsonMapping::end() const -> Iterator {
-        return TGenericSerializedSequenceIterator::End(Data, LpCounter);
+    constexpr auto Mapping::end() const -> Iterator {
+        return GenericSerializedSequenceIterator::End(Data, LpCounter);
     }
 
-    constexpr auto TJsonMapping::operator[](std::string_view key) const -> TExpected<TJsonValue> {
+    constexpr auto Mapping::operator[](std::string_view key) const -> Expected<JsonValue> {
         auto it = begin();
         for (; it != end(); ++it) {
             auto [k, v] = *it;
@@ -71,33 +71,33 @@ namespace NJsonParser {
             if (v.HasError()) return v.Error();
             if (k == key) return v;
         }
-        return Error(
+        return MakeError(
             LpCounter,
             NError::ErrorCode::MappingKeyNotFound,
-            NError::TMappingKeyNotFoundAdditionalInfo{key}
+            NError::MappingKeyNotFoundAdditionalInfo{key}
         );
     }
 
-    constexpr auto TJsonMapping::size() const -> size_t {
+    constexpr auto Mapping::size() const -> size_t {
         size_t counter = 0;
         for (auto it = begin(); it != end(); ++it, ++counter);
         return counter;
     }
 
-    constexpr auto TExpected<TJsonMapping>::begin() const noexcept -> TJsonMapping::Iterator {
-        return HasValue() ? Value().begin() : TJsonMapping::Iterator{Error()};
+    constexpr auto Expected<Mapping>::begin() const noexcept -> Mapping::Iterator {
+        return HasValue() ? Value().begin() : Mapping::Iterator{Error()};
     }
 
-    constexpr auto TExpected<TJsonMapping>::end() const noexcept -> TJsonMapping::Iterator {
-        return HasValue() ? Value().end() : TJsonMapping::Iterator{Error()};
+    constexpr auto Expected<Mapping>::end() const noexcept -> Mapping::Iterator {
+        return HasValue() ? Value().end() : Mapping::Iterator{Error()};
     }
 
-    constexpr auto TExpected<TJsonMapping>::operator[](std::string_view key) const noexcept
-    -> TExpected<TJsonValue> {
+    constexpr auto Expected<Mapping>::operator[](std::string_view key) const noexcept
+    -> Expected<JsonValue> {
         return HasValue() ? Value()[key] : Error();
     }
 
-    constexpr auto TExpected<TJsonMapping>::size() const noexcept -> TExpected<size_t> {
-        return HasValue() ? TExpected<size_t>{Value().size()} : Error();
+    constexpr auto Expected<Mapping>::size() const noexcept -> Expected<size_t> {
+        return HasValue() ? Expected<size_t>{Value().size()} : Error();
     }
 } // namespace NJsonParser

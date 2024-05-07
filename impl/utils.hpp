@@ -39,10 +39,10 @@ namespace NJsonParser::NUtils {
     template <std::invocable<char> Predicate>
     constexpr auto FindFirstOfWithZeroBracketBalance(
         std::string_view str,
-        TLinePositionCounter& lpCounter,
+        LinePositionCounter& lpCounter,
         Predicate&& predicate,
         std::string_view::size_type pos = 0
-    ) -> TExpected<std::string_view::size_type> { 
+    ) -> Expected<std::string_view::size_type> { 
         if (str.size() <= pos) return std::string_view::npos;
         auto stack = std::string{};
         auto prevLpCounter = lpCounter;
@@ -52,14 +52,14 @@ namespace NJsonParser::NUtils {
                 case '{':
                     stack.push_back(ch); break;
                 case ']':
-                    if (stack.empty() || stack.back() != '[') return Error(
+                    if (stack.empty() || stack.back() != '[') return MakeError(
                         lpCounter,
                         NError::ErrorCode::SyntaxError,
                         "brackets mismatch: encounterlpCountered an excess ']'"
                     );
                     stack.pop_back(); break;
                 case '}':
-                    if (stack.empty() || stack.back() != '{') return Error(
+                    if (stack.empty() || stack.back() != '{') return MakeError(
                         lpCounter,
                         NError::ErrorCode::SyntaxError,
                         "brackets mismatch: encountered an excess '}'"
@@ -72,7 +72,7 @@ namespace NJsonParser::NUtils {
             lpCounter.Process(ch);
             ++pos;
         }
-        if (const auto balance = stack.size(); balance != 0) return Error(
+        if (const auto balance = stack.size(); balance != 0) return MakeError(
             prevLpCounter,
             NError::ErrorCode::SyntaxError,
             "brackets mismatch: encountered some unmatched opening brackets"
@@ -82,10 +82,10 @@ namespace NJsonParser::NUtils {
 
     constexpr auto FindNextElementStartPos(
         std::string_view str,
-        TLinePositionCounter& lpCounter,
+        LinePositionCounter& lpCounter,
         std::string_view::size_type pos = 0,
         char delimiter = ','
-    ) -> TExpected<std::string_view::size_type> {
+    ) -> Expected<std::string_view::size_type> {
         if (pos == std::string_view::npos) return pos;
         const auto result = FindFirstOfWithZeroBracketBalance(
             str, lpCounter,
@@ -102,10 +102,10 @@ namespace NJsonParser::NUtils {
 
     constexpr auto FindCurElementEndPos(
         std::string_view str,
-        TLinePositionCounter& lpCounter,
+        LinePositionCounter& lpCounter,
         std::string_view::size_type pos = 0,
         char delimiter = ','
-    ) -> TExpected<std::string_view::size_type> {
+    ) -> Expected<std::string_view::size_type> {
         return FindFirstOfWithZeroBracketBalance(
             str, lpCounter,
             [delimiter](char ch) {

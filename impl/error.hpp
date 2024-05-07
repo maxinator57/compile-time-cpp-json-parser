@@ -44,43 +44,43 @@ namespace NJsonParser::NError {
         // This project is written in c++20 on purpose, so, can't use it here.
         return "\"invalid error code\"";
     }
-    template <class TOstream>
-    constexpr auto operator<<(TOstream& out, ErrorCode code) -> TOstream& {
+    template <class Ostream>
+    constexpr auto operator<<(Ostream& out, ErrorCode code) -> Ostream& {
         out << ToStr(code);
         return out;
     }
 
-    struct TArrayIndexOutOfRangeAdditionalInfo {
-        using TSelf = TArrayIndexOutOfRangeAdditionalInfo;
+    struct ArrayIndexOutOfRangeAdditionalInfo {
+        using Self = ArrayIndexOutOfRangeAdditionalInfo;
         size_t Index =  0;
         size_t ArrayLen = 0;
-        constexpr auto operator==(const TSelf& other) const noexcept -> bool = default;
+        constexpr auto operator==(const Self& other) const noexcept -> bool = default;
     }; 
-    template <class TOstream>
+    template <class Ostream>
     constexpr auto operator<<(
-        TOstream& out,
-        const TArrayIndexOutOfRangeAdditionalInfo& info
-    ) -> TOstream& {
+        Ostream& out,
+        const ArrayIndexOutOfRangeAdditionalInfo& info
+    ) -> Ostream& {
         out << "index " << info.Index << " is out of range for array of length " << info.ArrayLen;
         return out;
     }
 
-    struct TMappingKeyNotFoundAdditionalInfo {
+    struct MappingKeyNotFoundAdditionalInfo {
         // Just a null-terminated array of bytes
     public:
-        static constexpr size_t kMaxLenToSave = sizeof(TArrayIndexOutOfRangeAdditionalInfo) - 1;
-        using TStorage = std::array<char, kMaxLenToSave + 1>;
+        static constexpr size_t kMaxLenToSave = sizeof(ArrayIndexOutOfRangeAdditionalInfo) - 1;
+        using Storage = std::array<char, kMaxLenToSave + 1>;
     private:
-        TStorage RequestedKey = {}; // initialized with zeros, hence, the invariant that
+        Storage RequestedKey = {}; // initialized with zeros, hence, the invariant that
                                     // `RequestedKey` is null-terminated always holds
-        using TSelf = TMappingKeyNotFoundAdditionalInfo;
+        using Self = MappingKeyNotFoundAdditionalInfo;
     public:
         constexpr auto GetRequestedKey() const noexcept -> const char* {
             return &RequestedKey[0];
         }
-        constexpr TMappingKeyNotFoundAdditionalInfo(std::string_view key) noexcept {
+        constexpr MappingKeyNotFoundAdditionalInfo(std::string_view key) noexcept {
             // Do an actual copy instead of just storing the given `string_view`
-            // so that `TError` objects don't depend on the lifetime of strings
+            // so that `Error` objects don't depend on the lifetime of strings
             // containing json data from the parsing of which this error emerged
             std::copy_n(
                 key.begin(),
@@ -88,18 +88,18 @@ namespace NJsonParser::NError {
                 RequestedKey.begin()
             );
         }
-        constexpr auto operator==(const TSelf& other) const noexcept -> bool = default;
+        constexpr auto operator==(const Self& other) const noexcept -> bool = default;
     };
     // The `operator<<` here is declared in this weird way so that it matches only second arguments that
-    // have the exact type `TMappingKeyNotFoundAdditionalInfo` and not the ones convertible to this type
-    template <class TOstream, class TInfo>
-    requires std::same_as<TInfo, TMappingKeyNotFoundAdditionalInfo>
-    constexpr auto operator<<(TOstream&& out, const TInfo& info) -> TOstream {
+    // have the exact type `MappingKeyNotFoundAdditionalInfo` and not the ones convertible to this type
+    template <class Ostream, class TInfo>
+    requires std::same_as<TInfo, MappingKeyNotFoundAdditionalInfo>
+    constexpr auto operator<<(Ostream&& out, const TInfo& info) -> Ostream {
         out << "key \"" << info.GetRequestedKey() << "\" doesn't exist in mapping";
-        return std::forward<TOstream>(out);
+        return std::forward<Ostream>(out);
     }
 
-    struct TError { 
+    struct Error { 
         struct TBasicInfo {
             uint16_t LineNumber = 0;
             uint16_t Position = 0;
@@ -107,41 +107,41 @@ namespace NJsonParser::NError {
             constexpr auto operator==(const TBasicInfo& other) const -> bool = default;
         } BasicInfo;
         // On x86-64 architectures `sizeof(std::string_view)`
-        // == `sizeof(TArrayIndexOutOfRangeAdditionalInfo)`
-        // == `sizeof(TMappingKeyNotFoundAdditionalInfo)` == 16 bytes
-        // `TMappingKeyNotFoundAdditionalInfo` was designed to have
+        // == `sizeof(ArrayIndexOutOfRangeAdditionalInfo)`
+        // == `sizeof(MappingKeyNotFoundAdditionalInfo)` == 16 bytes
+        // `MappingKeyNotFoundAdditionalInfo` was designed to have
         // the same size as the other two on purpose, so that the
         // memory layout of this `std::variant` would be efficient
         using TAdditionalInfo = std::variant<
             std::string_view,
-            TArrayIndexOutOfRangeAdditionalInfo,
-            TMappingKeyNotFoundAdditionalInfo
+            ArrayIndexOutOfRangeAdditionalInfo,
+            MappingKeyNotFoundAdditionalInfo
         >;
         TAdditionalInfo AdditionalInfo;
-        constexpr auto operator==(const TError& other) const noexcept -> bool = default;
+        constexpr auto operator==(const Error& other) const noexcept -> bool = default;
     };
     // Okay, this is a bit ugly, but it's impossible to construct an empty
     // `std::variant` except for the "valueless by exception" case.
     // So, `error.AdditionalInfo` being an empty `std::string::view` is equivalent
     // to having no additional info.
-    constexpr auto IsEmpty(const TError::TAdditionalInfo& info) -> bool {
+    constexpr auto IsEmpty(const Error::TAdditionalInfo& info) -> bool {
         return std::holds_alternative<std::string_view>(info)
             && std::get<std::string_view>(info).empty();
     }
     // The `operator<<` here is declared in this weird way so that it matches only second arguments that
-    // have the exact type `TError::TAdditionalInfo` and not the ones just convertible to this type
-    template <class TOstream, class TAdditionalInfo>
-    requires std::same_as<TAdditionalInfo, TError::TAdditionalInfo>
-    constexpr auto operator<<(TOstream&& out, const TAdditionalInfo& info) -> TOstream {
+    // have the exact type `Error::TAdditionalInfo` and not the ones just convertible to this type
+    template <class Ostream, class TAdditionalInfo>
+    requires std::same_as<TAdditionalInfo, Error::TAdditionalInfo>
+    constexpr auto operator<<(Ostream&& out, const TAdditionalInfo& info) -> Ostream {
         std::visit([&out](auto&& val) { out << val; }, info);
-        return std::forward<TOstream>(out);
+        return std::forward<Ostream>(out);
     }
-    constexpr auto Error(
-        TLinePositionCounter lpCounter,
+    constexpr auto MakeError(
+        LinePositionCounter lpCounter,
         ErrorCode code,
         // initializes the `std::variant` with an empty `std::string_view`:
-        TError::TAdditionalInfo additionalInfo = {}
-    ) noexcept -> TError {
+        Error::TAdditionalInfo additionalInfo = {}
+    ) noexcept -> Error {
         return {
             .BasicInfo = {
                 .LineNumber = lpCounter.LineNumber,
@@ -151,15 +151,15 @@ namespace NJsonParser::NError {
             .AdditionalInfo = additionalInfo,
         };
     } 
-    template <class TOstream>
-    constexpr auto operator<<(TOstream&& out, const TError& error) -> TOstream {
+    template <class Ostream>
+    constexpr auto operator<<(Ostream&& out, const Error& error) -> Ostream {
         out << ToStr(error.BasicInfo.Code);
         if (error.AdditionalInfo.index() != std::variant_npos
             && !IsEmpty(error.AdditionalInfo)
         ) out << " (" << error.AdditionalInfo << ")";
         out << " at line " << error.BasicInfo.LineNumber
             << ", position " << error.BasicInfo.Position;
-        return std::forward<TOstream>(out);
+        return std::forward<Ostream>(out);
     }
 
     // Two metafunctions for printing error messages at compile time
@@ -168,7 +168,7 @@ namespace NJsonParser::NError {
     struct PrintErrAtCompileTimeImpl {
         static_assert(static_cast<int>(code) == 0);
     };
-    template <TError::TBasicInfo errInfo>
+    template <Error::TBasicInfo errInfo>
     struct PrintErrAtCompileTime : PrintErrAtCompileTimeImpl<
         errInfo.Code,
         errInfo.LineNumber,

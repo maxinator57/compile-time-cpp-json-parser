@@ -11,11 +11,11 @@
 
 
 namespace NJsonParser {
-    constexpr TJsonValue::TJsonValue(std::string_view data, const TLinePositionCounter& lpCounter)
-        : TDataHolderMixin(NUtils::StripSpaces(data), lpCounter) {}
+    constexpr JsonValue::JsonValue(std::string_view data, const LinePositionCounter& lpCounter)
+        : DataHolderMixin(NUtils::StripSpaces(data), lpCounter) {}
 
-    constexpr auto TJsonValue::AsInt() const -> TExpected<Int> {
-        if (Data.empty()) return Error(
+    template <> constexpr auto JsonValue::As<Int>() const -> Expected<Int> {
+        if (Data.empty()) return MakeError(
             LpCounter,
             NError::ErrorCode::MissingValueError
         );
@@ -28,7 +28,7 @@ namespace NJsonParser {
             const auto isNegative = (Data.front() == '-');
             const auto sign = isNegative ? -1 : 1;
             for (auto ch : Data.substr(isNegative ? 1 : 0)) {
-                if (!isDigit(ch)) return Error(
+                if (!isDigit(ch)) return MakeError(
                     LpCounter,
                     NError::ErrorCode::TypeError,
                     "expected int, got something else"
@@ -40,12 +40,12 @@ namespace NJsonParser {
             const auto fromCharsResult = std::from_chars(
                 Data.data(), Data.data() + Data.size(), result, 10
             );
-            if (fromCharsResult.ec == std::errc::invalid_argument) return Error(
+            if (fromCharsResult.ec == std::errc::invalid_argument) return MakeError(
                 LpCounter,
                 NError::ErrorCode::TypeError,
                 "expected int, got something else"
             );
-            if (fromCharsResult.ec == std::errc::result_out_of_range) return Error(
+            if (fromCharsResult.ec == std::errc::result_out_of_range) return MakeError(
                 LpCounter,
                 NError::ErrorCode::ResultOutOfRangeError
             );
@@ -53,13 +53,13 @@ namespace NJsonParser {
         return result;
     }
 
-    constexpr auto TJsonValue::AsDouble() const -> TExpected<Double> {
+    template <> constexpr auto JsonValue::As<Double>() const -> Expected<Double> {
         if (std::is_constant_evaluated()) {
             // At compile-time we have to parse a double by hand
             const auto dotPosition = Data.find_first_of('.');
             if (dotPosition == std::string_view::npos || dotPosition == Data.size() - 1) {
-                auto intOrErr = TJsonValue{Data.substr(0, dotPosition)}.AsInt();
-                if (intOrErr.HasError()) return Error(
+                auto intOrErr = JsonValue{Data.substr(0, dotPosition)}.As<Int>();
+                if (intOrErr.HasError()) return MakeError(
                     LpCounter,
                     NError::ErrorCode::TypeError,
                     "expected double, got something else"
@@ -68,7 +68,7 @@ namespace NJsonParser {
             }
 
             // Parse the integral part:
-            auto intPartOrErr = TJsonValue{Data.substr(0, dotPosition)}.AsInt();
+            auto intPartOrErr = JsonValue{Data.substr(0, dotPosition)}.As<Int>();
             if (intPartOrErr.HasError()) return std::move(intPartOrErr.Error());
             const auto intPart = intPartOrErr.Value();
 
@@ -77,9 +77,9 @@ namespace NJsonParser {
                 Data.size() - dotPosition - 1,
                 std::string_view::size_type{10}
             );
-            auto fracPartOrErr = TJsonValue{
+            auto fracPartOrErr = JsonValue{
                 Data.substr(dotPosition + 1, fracPartLen)
-            }.AsInt();
+            }.As<Int>();
             if (fracPartOrErr.HasError()) return std::move(fracPartOrErr.Error());
             const auto fracPart = fracPartOrErr.Value();
 
@@ -105,12 +105,12 @@ namespace NJsonParser {
                 result,
                 std::chars_format::general
             );
-            if (ec == std::errc::invalid_argument) return Error(
+            if (ec == std::errc::invalid_argument) return MakeError(
                 LpCounter,
                 NError::ErrorCode::TypeError,
                 "expected double, got something else"
             );
-            if (ec == std::errc::result_out_of_range) return Error(
+            if (ec == std::errc::result_out_of_range) return MakeError(
                 LpCounter,
                 NError::ErrorCode::ResultOutOfRangeError
             );
@@ -118,37 +118,37 @@ namespace NJsonParser {
         }
     }
 
-    constexpr auto TJsonValue::AsString() const -> TExpected<String> {
-        if (Data.empty()) return Error(
+    template <> constexpr auto JsonValue::As<String>() const -> Expected<String> {
+        if (Data.empty()) return MakeError(
             LpCounter,
             NError::ErrorCode::MissingValueError,
             "empty underlying data while expecting a string"
         );
         if (Data.size() == 1) {
-            if (Data.front() == '"') return Error(
+            if (Data.front() == '"') return MakeError(
                 LpCounter,
                 NError::ErrorCode::SyntaxError,
                 "a double quote (\") is probably missing "
                 "at the end of a string"
-            ); else return Error(
+            ); else return MakeError(
                 LpCounter,
                 NError::ErrorCode::TypeError,
                 "expected string, got something else"
             );
         }
-        if (Data.front() == '"' && Data.back() != '"') return Error(
+        if (Data.front() == '"' && Data.back() != '"') return MakeError(
             LpCounter.Copy().Process(Data),
             NError::ErrorCode::SyntaxError,
             "a double quote (\") is probably missing "
             "at the end of a string"
         );
-        if (Data.front() != '"' && Data.back() == '"') return Error(
+        if (Data.front() != '"' && Data.back() == '"') return MakeError(
             LpCounter,
             NError::ErrorCode::SyntaxError,
             "a double quote (\") is probably missing "
             "at the start of a string"
         );
-        if (Data.front() != '"' && Data.back() != '"') return Error(
+        if (Data.front() != '"' && Data.back() != '"') return MakeError(
             LpCounter,
             NError::ErrorCode::TypeError,
             "either both double quotes are missing or the "
@@ -157,98 +157,95 @@ namespace NJsonParser {
         return Data.substr(1, Data.size() - 2);
     }
 
-    constexpr auto TJsonValue::AsArray() const -> TExpected<TJsonArray> {
-        if (Data.empty()) return Error(
+    template <> constexpr auto JsonValue::As<Array>() const -> Expected<Array> {
+        if (Data.empty()) return MakeError(
             LpCounter,
             NError::ErrorCode::MissingValueError,
             "empty underlying data while expecting an array"
         );
-        if (Data.front() == '[' && Data.back() != ']') return Error(
+        if (Data.front() == '[' && Data.back() != ']') return MakeError(
             LpCounter.Copy().Process(Data.substr(0, Data.size() - 1)),
             NError::ErrorCode::SyntaxError,
             "a closing square bracket is probably missing "
             "at the end of an array"
         );
-        if (Data.front() != '[' && Data.back() == ']') return Error(
+        if (Data.front() != '[' && Data.back() == ']') return MakeError(
             LpCounter,
             NError::ErrorCode::SyntaxError,
             "an opening square bracket is probably missing "
             "at the start of the array"
         );
-        if (Data.front() != '[' && Data.back() != ']') return Error(
+        if (Data.front() != '[' && Data.back() != ']') return MakeError(
             LpCounter,
             NError::ErrorCode::TypeError,
             "either both square brackets are missing or the "
             "underlying data does not represent an array"
         );
-        return TJsonArray{
+        return Array{
             Data.substr(1, Data.size() - 2),
             LpCounter
         };
     }
 
-    constexpr auto TJsonValue::operator[](size_t idx) const -> TExpected<TJsonValue> {
-        return AsArray()[idx];
+    constexpr auto JsonValue::operator[](size_t idx) const -> Expected<JsonValue> {
+        return As<Array>()[idx];
     }
 
-    constexpr auto TJsonValue::AsMapping() const -> TExpected<TJsonMapping> {
-        if (Data.empty()) return Error(
+    template <> constexpr auto JsonValue::As<Mapping>() const -> Expected<Mapping> {
+        if (Data.empty()) return MakeError(
             LpCounter,
             NError::ErrorCode::MissingValueError,
             "empty underlying data while expecting a mapping"
         );
-        if (Data.front() == '{' && Data.back() != '}') return Error(
+        if (Data.front() == '{' && Data.back() != '}') return MakeError(
             LpCounter.Copy().Process(Data.substr(0, Data.size() - 1)),
             NError::ErrorCode::SyntaxError,
             "a closing curly brace ('}') is probably missing "
             "at the end of a mapping"
         );
-        if (Data.front() != '{' && Data.back() == '}') return Error(
+        if (Data.front() != '{' && Data.back() == '}') return MakeError(
             LpCounter,
             NError::ErrorCode::SyntaxError,
             "an opening curly brace ('{') is probably missing "
             "at the start of a mapping"
         );
-        if (Data.front() != '{' && Data.back() != '}') return Error(
+        if (Data.front() != '{' && Data.back() != '}') return MakeError(
             LpCounter,
             NError::ErrorCode::TypeError,
             "either both curly braces ('{' and '}') are missing "
             "or the underlying data does not represent a mapping"
         );
-        return TJsonMapping{
+        return Mapping{
             Data.substr(1, Data.size() - 2),
             LpCounter.Copy().Process(Data[0])
         };
     }
 
-    constexpr auto TJsonValue::operator[](std::string_view key) const -> TExpected<TJsonValue> {
-        return AsMapping()[key];
+    constexpr auto JsonValue::operator[](std::string_view key) const -> Expected<JsonValue> {
+        return As<Mapping>()[key];
     }
 
     // The following boilerplate is needed for syntactically nice
     // monadic operations support:
-
-    constexpr auto TExpected<TJsonValue>::AsInt() const -> TExpected<Int> {
-        return HasValue() ? Value().AsInt() : Error();
+    template <> constexpr auto Expected<JsonValue>::As<Int>() const -> Expected<Int> {
+        return HasValue() ? Value().As<Int>() : Error();
     }
-    constexpr auto TExpected<TJsonValue>::AsDouble() const -> TExpected<Double> {
-        return HasValue() ? Value().AsDouble() : Error();
+    template <> constexpr auto Expected<JsonValue>::As<Double>() const -> Expected<Double> {
+        return HasValue() ? Value().As<Double>() : Error();
     }
-    constexpr auto TExpected<TJsonValue>::AsString() const -> TExpected<String> {
-        return HasValue() ? Value().AsString() : Error();
+    template <> constexpr auto Expected<JsonValue>::As<String>() const -> Expected<String> {
+        return HasValue() ? Value().As<String>() : Error();
     }
-
-    constexpr auto TExpected<TJsonValue>::AsArray() const -> TExpected<TJsonArray> {
-        return HasValue() ? Value().AsArray() : Error();
+    template <> constexpr auto Expected<JsonValue>::As<Array>() const -> Expected<Array> {
+        return HasValue() ? Value().As<Array>() : Error();
     }
-    constexpr auto TExpected<TJsonValue>::operator[](size_t idx) const -> TExpected<TJsonValue> {
-        return AsArray()[idx];
+    constexpr auto Expected<JsonValue>::operator[](size_t idx) const -> Expected<JsonValue> {
+        return As<Array>()[idx];
     }
-
-    constexpr auto TExpected<TJsonValue>::AsMapping() const -> TExpected<TJsonMapping> {
-        return HasValue() ? Value().AsMapping() : Error();
+    template <> constexpr auto Expected<JsonValue>::As<Mapping>() const -> Expected<Mapping> {
+        return HasValue() ? Value().As<Mapping>() : Error();
     }
-    constexpr auto TExpected<TJsonValue>::operator[](std::string_view key) const -> TExpected<TJsonValue> {
-        return AsMapping()[key];
+    constexpr auto Expected<JsonValue>::operator[](std::string_view key) const -> Expected<JsonValue> {
+        return As<Mapping>()[key];
     }
 } // namespace NJsonParser

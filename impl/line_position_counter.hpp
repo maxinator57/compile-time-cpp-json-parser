@@ -6,15 +6,15 @@
 
 
 namespace NJsonParser {
-    struct TLinePositionCounter {
+    struct LinePositionCounter {
         uint16_t LineNumber = 0;
         uint16_t Position = 0;
 
-        constexpr auto Copy() const noexcept -> TLinePositionCounter {
+        constexpr auto Copy() const noexcept -> LinePositionCounter {
             return *this;
         }
 
-        constexpr auto Process(char ch) noexcept -> TLinePositionCounter& {
+        constexpr auto Process(char ch) noexcept -> LinePositionCounter& {
             if (ch == '\n') {
                 ++LineNumber;
                 Position = 0;
@@ -23,7 +23,7 @@ namespace NJsonParser {
             }
             return *this;
         }
-        constexpr auto Process(std::string_view str) noexcept -> TLinePositionCounter& {
+        constexpr auto Process(std::string_view str) noexcept -> LinePositionCounter& {
             for (char ch : str) Process(ch);
             return *this;
         }

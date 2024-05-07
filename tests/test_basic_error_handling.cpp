@@ -8,7 +8,7 @@ using namespace NJsonParser;
 
 
 auto TestBasicErrorHandling() -> void {
-    static constexpr auto json = TJsonValue{
+    static constexpr auto json = JsonValue{
     /* line numbers: */
     /* 0  */ "{                                                           \n"
     /* 1  */ "    \"data\": [                                             \n"
@@ -26,9 +26,9 @@ auto TestBasicErrorHandling() -> void {
     };
 
     {   // When trying to parse json value as a wrong type, we get a `TypeError`
-        constexpr auto asWrongType = json.AsArray();
+        constexpr auto asWrongType = json.As<Array>();
         static_assert(asWrongType.HasError());
-        static_assert(asWrongType.Error() == NError::TError{
+        static_assert(asWrongType.Error() == NError::Error{
             .BasicInfo = { 
                 .LineNumber = 0,
                 .Position = 0, // points at the first symbol of the underlying data,
@@ -42,24 +42,24 @@ auto TestBasicErrorHandling() -> void {
     }
 
     {   // Lookups made after the first time an error occurs keep the information about this error
-        constexpr auto params = json["params"].AsMapping();
+        constexpr auto params = json["params"].As<Mapping>();
         // No error yet
         static_assert(!params.HasError()); // equivalent to params.HasValue()
         static_assert(params.HasValue());
 
         // Now perform some operations that would result in an error
         constexpr auto wrongLookup =
-            params["interpreters"][0]["name"].AsString(); // the requested key "interpreters" 
+            params["interpreters"][0]["name"].As<String>(); // the requested key "interpreters" 
                                                           // doesn't exist in the mapping
         static_assert(wrongLookup.HasError());
-        static_assert(wrongLookup.Error() == NError::TError{
+        static_assert(wrongLookup.Error() == NError::Error{
             // Line 5, position 15 is the place where the "params" json mapping starts
             .BasicInfo = {
                 .LineNumber = 5,
                 .Position = 15,
                 .Code = NError::ErrorCode::MappingKeyNotFound
             },
-            .AdditionalInfo = NError::TMappingKeyNotFoundAdditionalInfo{"interpreters"},
+            .AdditionalInfo = NError::MappingKeyNotFoundAdditionalInfo{"interpreters"},
         });
         const auto errorMessage = (std::stringstream{} << wrongLookup.Error()).str();
         assert(errorMessage ==

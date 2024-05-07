@@ -6,60 +6,58 @@
 
 namespace NJsonParser {
     // A custom type like c++23 `std::expected`
-    template <class T> struct TExpected; 
+    template <class T> struct Expected; 
 
-    // JSON types:
+    // Json types:
     using Int = int64_t;
     using Double = double;
     using String = std::string_view;
-    class TJsonArray;
-    class TJsonMapping;
+    class Array;
+    class Mapping;
+    // A concept that acts as a sum of all json types
+    template <class T>
+    concept CJsonType = std::same_as<T, Int>
+                     || std::same_as<T, Double>
+                     || std::same_as<T, String>
+                     || std::same_as<T, Array>
+                     || std::same_as<T, Mapping>;
     // A type that holds an arbitrary json value
-    class TJsonValue;
+    class JsonValue;
 
 
-    class TJsonArray : public TDataHolderMixin {
+    class Array : public DataHolderMixin {
     private:
-        constexpr TJsonArray(std::string_view, const TLinePositionCounter&) noexcept;
-        friend class TJsonValue;
+        constexpr Array(std::string_view, const LinePositionCounter&) noexcept;
+        friend class JsonValue;
     public:
-        constexpr auto operator[](size_t idx) const noexcept -> TExpected<TJsonValue>;
+        constexpr auto operator[](size_t idx) const noexcept -> Expected<JsonValue>;
         constexpr auto size() const noexcept -> size_t;
-
         class Iterator;
         constexpr auto begin() const noexcept -> Iterator;
         constexpr auto end() const noexcept -> Iterator;
     };
 
 
-    class TJsonMapping : public TDataHolderMixin {
+    class Mapping : public DataHolderMixin {
     private:
-        constexpr TJsonMapping(std::string_view, const TLinePositionCounter&);
-        friend class TJsonValue;
+        constexpr Mapping(std::string_view, const LinePositionCounter&);
+        friend class JsonValue;
     public:
-        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
+        constexpr auto operator[](std::string_view key) const -> Expected<JsonValue>;
         constexpr auto size() const -> size_t;
-
         class Iterator;
         constexpr auto begin() const -> Iterator;
         constexpr auto end() const -> Iterator;
     }; 
 
 
-    class TJsonValue : public TDataHolderMixin {
+    class JsonValue : public DataHolderMixin {
     public:
-        constexpr TJsonValue(std::string_view, const TLinePositionCounter& = {});
-
-        constexpr auto AsInt() const -> TExpected<Int>;
-        constexpr auto AsDouble() const -> TExpected<Double>;
-        constexpr auto AsString() const -> TExpected<String>;
-
-        constexpr auto AsArray() const -> TExpected<TJsonArray>;
-        // Same effect as `.AsArray()[idx]`
-        constexpr auto operator[](size_t idx) const -> TExpected<TJsonValue>;
-
-        constexpr auto AsMapping() const -> TExpected<TJsonMapping>;
-        // Same effect as `.AsMapping()[idx]`
-        constexpr auto operator[](std::string_view key) const -> TExpected<TJsonValue>;
+        constexpr JsonValue(std::string_view, const LinePositionCounter& = {});
+        template <CJsonType T> constexpr auto As() const -> Expected<T>;
+        // Same effect as `.As<Array>()[idx]`
+        constexpr auto operator[](size_t idx) const -> Expected<JsonValue>;
+        // Same effect as `.As<Mapping>()[key]`
+        constexpr auto operator[](std::string_view key) const -> Expected<JsonValue>;
     }; 
 }
