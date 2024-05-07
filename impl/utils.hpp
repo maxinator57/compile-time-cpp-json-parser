@@ -55,7 +55,7 @@ namespace NJsonParser::NUtils {
                     if (stack.empty() || stack.back() != '[') return MakeError(
                         lpCounter,
                         NError::ErrorCode::SyntaxError,
-                        "brackets mismatch: encounterlpCountered an excess ']'"
+                        "brackets mismatch: encountered an excess ']'"
                     );
                     stack.pop_back(); break;
                 case '}':

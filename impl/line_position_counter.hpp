@@ -9,11 +9,9 @@ namespace NJsonParser {
     struct LinePositionCounter {
         uint16_t LineNumber = 0;
         uint16_t Position = 0;
-
         constexpr auto Copy() const noexcept -> LinePositionCounter {
             return *this;
         }
-
         constexpr auto Process(char ch) noexcept -> LinePositionCounter& {
             if (ch == '\n') {
                 ++LineNumber;

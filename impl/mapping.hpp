@@ -66,7 +66,7 @@ namespace NJsonParser {
     constexpr auto Mapping::operator[](std::string_view key) const -> Expected<JsonValue> {
         auto it = begin();
         for (; it != end(); ++it) {
-            auto [k, v] = *it;
+            const auto [k, v] = *it;
             if (k.HasError()) return k.Error();
             if (v.HasError()) return v.Error();
             if (k == key) return v;

@@ -5,9 +5,8 @@
 #include "error.hpp"
 #include "expected.hpp"
 #include "utils.hpp"
+
 #include <charconv>
-#include <system_error>
-#include <type_traits>
 
 
 namespace NJsonParser {
@@ -27,7 +26,7 @@ namespace NJsonParser {
             };
             const auto isNegative = (Data.front() == '-');
             const auto sign = isNegative ? -1 : 1;
-            for (auto ch : Data.substr(isNegative ? 1 : 0)) {
+            for (const auto ch : Data.substr(isNegative ? 1 : 0)) {
                 if (!isDigit(ch)) return MakeError(
                     LpCounter,
                     NError::ErrorCode::TypeError,
