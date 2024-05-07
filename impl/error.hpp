@@ -18,6 +18,7 @@ namespace NJsonParser::NError {
         ArrayIndexOutOfRange,
         MappingKeyNotFound,
         EndIteratorDereferenceError,
+        ResultOutOfRangeError,
     };
     // Maps `ErrorCode` values to string representations
     constexpr auto ToStr(ErrorCode code) noexcept -> std::string_view {
@@ -35,6 +36,9 @@ namespace NJsonParser::NError {
                 return "\"mapping key not found\" error";
             case EndIteratorDereferenceError:
                 return "\"dereference of an iterator pointing to an end of a container\" error";
+            case ResultOutOfRangeError:
+                return "\"provided int/double value is out of range of representable values "
+                       "of int/double type used by this library\" error";
         }
         // To avoid compiler warning; should rather be `std::unreachable()` from c++23.
         // This project is written in c++20 on purpose, so, can't use it here.

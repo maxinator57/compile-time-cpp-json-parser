@@ -14,7 +14,7 @@ namespace NJsonParser {
     using String = std::string_view;
     class TJsonArray;
     class TJsonMapping;
-    // A type for holding an arbitrary json value
+    // A type that holds an arbitrary json value
     class TJsonValue;
 
 

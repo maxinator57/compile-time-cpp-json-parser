@@ -30,7 +30,8 @@ namespace NJsonParser {
         // Provides only const version of the `Error()` method on purpose
         constexpr auto Error() const -> const NError::TError& {
             return std::get<NError::TError>(*this);
-        }
+        } 
+
         constexpr auto operator==(const TExpectedMixin<T>& other) const noexcept(
             noexcept(std::declval<T>() == std::declval<T>())
          && noexcept(Error() == other.Error())
@@ -43,7 +44,7 @@ namespace NJsonParser {
         // An `operator==` for efficient comparison with instances of `T`.
         // The comparison happens without the invocation of `TExpectedMixin` constructor
         template <class U>
-        requires std::same_as<U, T>
+        requires std::convertible_to<U, T>
         constexpr auto operator==(const U& otherValue) const -> bool {
             return HasValue() && Value() == otherValue;
         }
