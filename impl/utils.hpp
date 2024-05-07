@@ -109,7 +109,7 @@ namespace NJsonParser::NUtils {
         return FindFirstOfWithZeroBracketBalance(
             str, lpCounter,
             [delimiter](char ch) {
-                return ch == delimiter || NUtils::IsSpace(ch);
+                return ch == delimiter || IsSpace(ch);
             },
             pos
         );
