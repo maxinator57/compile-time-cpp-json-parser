@@ -11,7 +11,7 @@
 
 
 namespace NJsonParser {
-    constexpr JsonValue::JsonValue(std::string_view data, const LinePositionCounter& lpCounter)
+    constexpr JsonValue::JsonValue(std::string_view data, LinePositionCounter lpCounter)
         : DataHolderMixin(NUtils::StripSpaces(data), lpCounter) {}
 
     template <> constexpr auto JsonValue::As<Int>() const -> Expected<Int> {

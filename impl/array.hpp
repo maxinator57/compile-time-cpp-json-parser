@@ -7,7 +7,7 @@
 
 
 namespace NJsonParser {
-    constexpr Array::Array(std::string_view data, const LinePositionCounter& lpCounter) noexcept
+    constexpr Array::Array(std::string_view data, LinePositionCounter lpCounter) noexcept
         : DataHolderMixin(data, lpCounter) {}
 
     class Array::Iterator {

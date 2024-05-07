@@ -9,7 +9,7 @@
 
 
 namespace NJsonParser {
-    constexpr Mapping::Mapping(std::string_view data, const LinePositionCounter& lpCounter)
+    constexpr Mapping::Mapping(std::string_view data, LinePositionCounter lpCounter)
         : DataHolderMixin(data, lpCounter) {}
 
     class Mapping::Iterator {

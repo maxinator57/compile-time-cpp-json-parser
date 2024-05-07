@@ -27,7 +27,7 @@ namespace NJsonParser {
 
     class Array : public DataHolderMixin {
     private:
-        constexpr Array(std::string_view, const LinePositionCounter&) noexcept;
+        constexpr Array(std::string_view, LinePositionCounter) noexcept;
         friend class JsonValue;
     public:
         constexpr auto operator[](size_t idx) const noexcept -> Expected<JsonValue>;
@@ -40,7 +40,7 @@ namespace NJsonParser {
 
     class Mapping : public DataHolderMixin {
     private:
-        constexpr Mapping(std::string_view, const LinePositionCounter&);
+        constexpr Mapping(std::string_view, LinePositionCounter);
         friend class JsonValue;
     public:
         constexpr auto operator[](std::string_view key) const -> Expected<JsonValue>;
@@ -53,7 +53,7 @@ namespace NJsonParser {
 
     class JsonValue : public DataHolderMixin {
     public:
-        constexpr JsonValue(std::string_view, const LinePositionCounter& = {});
+        constexpr JsonValue(std::string_view, LinePositionCounter = {});
         template <CJsonType T> constexpr auto As() const -> Expected<T>;
         // Same effect as `.As<Array>()[idx]`
         constexpr auto operator[](size_t idx) const -> Expected<JsonValue>;
