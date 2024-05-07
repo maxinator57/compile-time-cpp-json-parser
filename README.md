@@ -230,20 +230,20 @@ The tests are located in the `tests` directory. Each test is written in its own 
 
 To build the tests with `gcc`, just run the following command in terminal:
 ```console
-$ g++ --std=c++20 tests/* -o run_tests
+g++ --std=c++20 tests/* -o run_tests
 ```
 To build the tests with `clang`:
 ```console
-$ clang++ --std=c++20 tests/* -o run_tests
+clang++ --std=c++20 tests/* -o run_tests
 ```
 To run the tests after building:
 ```console
-$ ./run_tests
+./run_tests
 ```
 
 ### Code structure
 
 The implementation of the parser is split into several header files in `impl` directory. These header files are as follows:
 | Header file | Contents |
-| ----------- |----------|
+| :---------: | :------: |
 | `api.hpp`   | Definitions of all types that represent json data (i.e. `int`, `double`, `string`, `array`, `mapping`) in the library code |
