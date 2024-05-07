@@ -204,7 +204,7 @@ This is a fast and efficient json parser written in C++20 that
 
     auto numbers = std::vector<Int>{};
     auto strings = std::vector<String>{};
-    for (const auto elem : json.AsMapping()["caba"].AsArray()) {
+    for (const auto elem : json["caba"].AsArray()) {
         if (auto i = elem.AsInt(); i.HasValue()) {
             numbers.push_back(i.Value());
         } else {
