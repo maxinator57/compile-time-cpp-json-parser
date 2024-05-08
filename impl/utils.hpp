@@ -36,11 +36,10 @@ namespace NJsonParser::NUtils {
         return std::string_view::npos;
     }
 
-    template <std::invocable<char> Predicate>
     constexpr auto FindFirstOfWithZeroBracketBalance(
         std::string_view str,
         LinePositionCounter& lpCounter,
-        Predicate&& predicate,
+        std::invocable<char> auto&& predicate,
         std::string_view::size_type pos = 0
     ) -> Expected<std::string_view::size_type> { 
         if (str.size() <= pos) return std::string_view::npos;

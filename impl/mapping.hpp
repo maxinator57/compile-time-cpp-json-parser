@@ -19,9 +19,9 @@ namespace NJsonParser {
         friend class Mapping;
         friend struct Expected<Mapping>;
     private:
-        constexpr Iterator(GenericSerializedSequenceIterator&& iter)
-            : KeyIter(std::move(iter))
-            , ValIter(KeyIter)
+        constexpr Iterator(const GenericSerializedSequenceIterator& iter)
+            : KeyIter(iter)
+            , ValIter(iter)
         {
             ValIter.StepForward(':', ',');
         }

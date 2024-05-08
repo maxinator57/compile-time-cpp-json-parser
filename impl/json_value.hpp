@@ -68,7 +68,7 @@ namespace NJsonParser {
 
             // Parse the integral part:
             auto intPartOrErr = JsonValue{Data.substr(0, dotPosition)}.As<Int>();
-            if (intPartOrErr.HasError()) return std::move(intPartOrErr.Error());
+            if (intPartOrErr.HasError()) return intPartOrErr.Error();
             const auto intPart = intPartOrErr.Value();
 
             // Parse the fractional part:
@@ -79,7 +79,7 @@ namespace NJsonParser {
             auto fracPartOrErr = JsonValue{
                 Data.substr(dotPosition + 1, fracPartLen)
             }.As<Int>();
-            if (fracPartOrErr.HasError()) return std::move(fracPartOrErr.Error());
+            if (fracPartOrErr.HasError()) return fracPartOrErr.Error();
             const auto fracPart = fracPartOrErr.Value();
 
             constexpr auto pow = [](auto base, std::unsigned_integral auto exp) {

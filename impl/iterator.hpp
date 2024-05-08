@@ -73,7 +73,7 @@ namespace NJsonParser {
         }
 
         constexpr GenericSerializedSequenceIterator(NError::Error err)
-            : CurElemBegPos(std::string_view::npos), ErrorOpt(std::move(err)) {}
+            : CurElemBegPos(std::string_view::npos), ErrorOpt(err) {}
 
         static constexpr auto Begin(
             std::string_view data,

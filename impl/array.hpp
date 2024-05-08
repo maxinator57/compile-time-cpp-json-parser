@@ -16,8 +16,8 @@ namespace NJsonParser {
         friend class Array;
         friend struct Expected<Array>;
     private:
-        constexpr Iterator(GenericSerializedSequenceIterator&& iter)
-            : Iter(std::move(iter)) {}
+        constexpr Iterator(const GenericSerializedSequenceIterator& iter)
+            : Iter(iter) {}
     public:
         using difference_type = int;
         using value_type = Expected<JsonValue>;
