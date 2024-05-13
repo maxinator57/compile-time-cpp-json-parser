@@ -255,7 +255,7 @@ The header file `parser.hpp` simply includes all the needed implementation files
 
 | Header file | Contents |
 | :---------- | :------- |
-| `impl/api.hpp`   | Declarations of all classes that represent json data (`Int`, `Double`, `String`, `Array`, `Mapping` and `JsonValue`) and their methods |
+| `impl/api.hpp`   | Declarations of all classes that represent json data (`Bool`, `Int`, `Float`, `String`, `Array`, `Mapping` and `JsonValue`) and their methods |
 | `impl/array.hpp` | Implementation of the `Array` and `Expected<Array>` class methods and definition of the `Array::Iterator` class |
 | `impl/data_holder.hpp` | Definition of the `DataHolderMixin` class |
 | `impl/error.hpp` | Definitions of all classes and functions related to error handling |

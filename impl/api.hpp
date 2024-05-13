@@ -9,15 +9,17 @@ namespace NJsonParser {
     template <class T> struct Expected; 
 
     // Json types:
+    using Bool = bool;
     using Int = int64_t;
-    using Double = double;
+    using Float = double;
     using String = std::string_view;
     class Array;
     class Mapping;
     // A concept that acts as a sum of all json types
     template <class T>
-    concept CJsonType = std::same_as<T, Int>
-                     || std::same_as<T, Double>
+    concept CJsonType = std::same_as<T, Bool>
+                     || std::same_as<T, Int>
+                     || std::same_as<T, Float>
                      || std::same_as<T, String>
                      || std::same_as<T, Array>
                      || std::same_as<T, Mapping>;
@@ -53,7 +55,7 @@ namespace NJsonParser {
 
     class JsonValue : public DataHolderMixin {
     public:
-        constexpr JsonValue(std::string_view, LinePositionCounter = {}) noexcept;
+        explicit constexpr JsonValue(std::string_view, LinePositionCounter = {}) noexcept;
         template <CJsonType T> constexpr auto As() const noexcept -> Expected<T>;
         // Same effect as `.As<Array>()[idx]`
         constexpr auto operator[](size_t idx) const noexcept -> Expected<JsonValue>;

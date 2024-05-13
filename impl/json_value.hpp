@@ -13,6 +13,20 @@ namespace NJsonParser {
     constexpr JsonValue::JsonValue(std::string_view data, LinePositionCounter lpCounter) noexcept
         : DataHolderMixin(NUtils::StripSpaces(data), lpCounter) {}
 
+    template <> constexpr auto JsonValue::As<Bool>() const noexcept -> Expected<Bool> {
+        if (Data == "true") return true;
+        if (Data == "false") return false;
+        if (Data.empty()) return MakeError(
+            LpCounter,
+            NError::ErrorCode::MissingValueError
+        );
+        return MakeError(
+            LpCounter,
+            NError::ErrorCode::TypeError,
+            "expected bool, got something else"
+        );
+    }
+
     template <> constexpr auto JsonValue::As<Int>() const noexcept -> Expected<Int> {
         if (Data.empty()) return MakeError(
             LpCounter,
@@ -52,7 +66,7 @@ namespace NJsonParser {
         return result;
     }
 
-    template <> constexpr auto JsonValue::As<Double>() const noexcept -> Expected<Double> {
+    template <> constexpr auto JsonValue::As<Float>() const noexcept -> Expected<Float> {
         if (std::is_constant_evaluated()) {
             // At compile-time we have to parse a double by hand
             const auto dotPosition = Data.find_first_of('.');
@@ -92,12 +106,12 @@ namespace NJsonParser {
                 return result;
             };
 
-            const auto fracPartDouble =
+            const auto fracPartFloat =
                 static_cast<double>(fracPart) / static_cast<double>(pow(uint64_t{10}, fracPartLen));
-            return static_cast<double>(intPart) + (intPart < 0 ? -fracPartDouble : fracPartDouble);
+            return static_cast<double>(intPart) + (intPart < 0 ? -fracPartFloat : fracPartFloat);
         } else {
             // At run-time we use the fast library function `std::from_chars`
-            Double result = 0;
+            Float result = 0;
             const auto [_, ec] = std::from_chars(
                 Data.data(),
                 Data.data() + Data.size(),
@@ -226,11 +240,14 @@ namespace NJsonParser {
 
     // The following boilerplate is needed for syntactically nice
     // monadic operations support:
+    template <> constexpr auto Expected<JsonValue>::As<Bool>() const -> Expected<Bool> {
+        return HasValue() ? Value().As<Bool>() : Error();
+    }
     template <> constexpr auto Expected<JsonValue>::As<Int>() const -> Expected<Int> {
         return HasValue() ? Value().As<Int>() : Error();
     }
-    template <> constexpr auto Expected<JsonValue>::As<Double>() const -> Expected<Double> {
-        return HasValue() ? Value().As<Double>() : Error();
+    template <> constexpr auto Expected<JsonValue>::As<Float>() const -> Expected<Float> {
+        return HasValue() ? Value().As<Float>() : Error();
     }
     template <> constexpr auto Expected<JsonValue>::As<String>() const -> Expected<String> {
         return HasValue() ? Value().As<String>() : Error();

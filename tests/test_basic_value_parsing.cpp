@@ -6,7 +6,33 @@
 using namespace NJsonParser;
 
 
-auto TestBasicValueParsing() -> void { 
+auto TestBasicValueParsing() -> void {
+    {   // Bool
+
+        // Compile-time
+        static_assert(JsonValue{"true"}.As<Bool>() == true);
+        static_assert(JsonValue{"false"}.As<Bool>() == false);
+        static_assert(
+            JsonValue{"True"}.As<Bool>().Error().BasicInfo.Code
+            == NError::ErrorCode::TypeError
+        );
+        static_assert(
+            JsonValue{""}.As<Bool>().Error().BasicInfo.Code
+            == NError::ErrorCode::MissingValueError
+        );
+
+        // Run-time
+        assert(JsonValue{"true"}.As<Bool>() == true);
+        assert(JsonValue{"false"}.As<Bool>() == false);
+        assert(
+            JsonValue{"True"}.As<Bool>().Error().BasicInfo.Code
+            == NError::ErrorCode::TypeError
+        );
+        assert(
+            JsonValue{""}.As<Bool>().Error().BasicInfo.Code
+            == NError::ErrorCode::MissingValueError
+        );
+    }
     {   // Int
 
         // Compile-time:
@@ -28,20 +54,20 @@ auto TestBasicValueParsing() -> void {
         assert(err.Error().BasicInfo.Code == NJsonParser::NError::ErrorCode::ResultOutOfRangeError);
     }
      
-    {   // Double
+    {   // Float
         constexpr auto kEps = 1e-9;
 
         // Compile-time: 
-        static_assert(std::abs(JsonValue{"12345.67891011"}.As<Double>().Value() - 12345.67891011) < kEps);
-        static_assert(std::abs(JsonValue{"000.12131415"  }.As<Double>().Value() - 0.12131415    ) < kEps);
-        static_assert(std::abs(JsonValue{"-16.17181920"  }.As<Double>().Value() - (-16.17181920)) < kEps);
-        static_assert(std::abs(JsonValue{"12345"         }.As<Double>().Value() - 12345         ) < kEps);
+        static_assert(std::abs(JsonValue{"12345.67891011"}.As<Float>().Value() - 12345.67891011) < kEps);
+        static_assert(std::abs(JsonValue{"000.12131415"  }.As<Float>().Value() - 0.12131415    ) < kEps);
+        static_assert(std::abs(JsonValue{"-16.17181920"  }.As<Float>().Value() - (-16.17181920)) < kEps);
+        static_assert(std::abs(JsonValue{"12345"         }.As<Float>().Value() - 12345         ) < kEps);
 
         // Run-time:
-        assert(std::abs(JsonValue{"12345.67891011"}.As<Double>().Value() - 12345.67891011) < kEps);
-        assert(std::abs(JsonValue{"000.12131415"  }.As<Double>().Value() - 0.12131415    ) < kEps);
-        assert(std::abs(JsonValue{"-16.17181920"  }.As<Double>().Value() - (-16.17181920)) < kEps);
-        assert(std::abs(JsonValue{"12345"         }.As<Double>().Value() - 12345         ) < kEps);
+        assert(std::abs(JsonValue{"12345.67891011"}.As<Float>().Value() - 12345.67891011) < kEps);
+        assert(std::abs(JsonValue{"000.12131415"  }.As<Float>().Value() - 0.12131415    ) < kEps);
+        assert(std::abs(JsonValue{"-16.17181920"  }.As<Float>().Value() - (-16.17181920)) < kEps);
+        assert(std::abs(JsonValue{"12345"         }.As<Float>().Value() - 12345         ) < kEps);
     }
      
     {   // String
