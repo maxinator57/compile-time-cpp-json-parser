@@ -56,14 +56,14 @@ auto TestBasicErrorHandling() -> void {
             // Line 5, position 15 is the place where the "params" json mapping starts
             .BasicInfo = {
                 .LineNumber = 5,
-                .Position = 15,
+                .Position = 14,
                 .Code = NError::ErrorCode::MappingKeyNotFound
             },
             .AdditionalInfo = NError::MappingKeyNotFoundAdditionalInfo{"interpreters"},
         });
         const auto errorMessage = (std::stringstream{} << wrongLookup.Error()).str();
         assert(errorMessage ==
-            "\"mapping key not found\" error (key \"interpreters\" doesn't exist in mapping) at line 5, position 15"
+            "\"mapping key not found\" error (key \"interpreters\" doesn't exist in mapping) at line 5, position 14"
         );
     }
 }

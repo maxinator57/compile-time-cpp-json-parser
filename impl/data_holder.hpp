@@ -11,7 +11,7 @@ namespace NJsonParser {
     //
     // Inheriting publicly from `DataHolderMixin` allows classes such as `JsonValue` to provide the
     // information about the location of the error in the text (i.e. line number and position in this line)
-    // when an error is encountered 
+    // when an error is encountered
     class DataHolderMixin {
     protected:
         std::string_view Data;

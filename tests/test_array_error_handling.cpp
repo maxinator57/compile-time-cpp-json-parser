@@ -22,6 +22,7 @@ auto TestArrayErrorHandling() -> void {
     // Although we have a syntax error on line 4 (4-th array ends
     // with a curly brace '}' instead of square bracket ']'),
     // reading the first three arrays is fine.
+    static_assert(json.As<Array>().size() == 3);
     
     {   // Compute the sum of elements of the first array using `std::accumulate`
         constexpr auto zeroth = json[0].As<Array>();

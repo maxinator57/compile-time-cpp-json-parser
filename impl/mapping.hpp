@@ -6,6 +6,7 @@
 #include "expected.hpp"
 #include "iterator.hpp"
 #include "line_position_counter.hpp"
+#include <iterator>
 
 
 namespace NJsonParser {
@@ -35,7 +36,6 @@ namespace NJsonParser {
     public:
         constexpr Iterator() : Iterator(GenericSerializedSequenceIterator::End({}, {})) {};
         constexpr auto operator*() const -> value_type {
-            // TODO: improve error handling here (return more specific errors when possible)
             return {
                 .Key = (*KeyIter).As<String>(),
                 .Value = *ValIter,
@@ -56,21 +56,30 @@ namespace NJsonParser {
     };
 
     constexpr auto Mapping::begin() const noexcept -> Iterator { 
-        return GenericSerializedSequenceIterator::Begin(Data, LpCounter, ':');
+        return GenericSerializedSequenceIterator::Begin(
+            Data,
+            LpCounter.Copy().Process('{'),
+            ':'
+        );
     }
 
     constexpr auto Mapping::end() const noexcept -> Iterator {
-        return GenericSerializedSequenceIterator::End(Data, LpCounter);
+        return GenericSerializedSequenceIterator::End(
+            Data,
+            LpCounter.Copy().Process('{')
+        );
     }
 
     constexpr auto Mapping::operator[](std::string_view key) const noexcept -> Expected<JsonValue> { 
-        const auto finish = end();
-        for (auto it = begin(); it != finish; ++it) {
+        auto it = begin();
+        for (; it != end(); ++it) {
             const auto [k, v] = *it;
+            if (k == key) return v;
             if (k.HasError()) return k.Error();
             if (v.HasError()) return v.Error();
-            if (k == key) return v;
         }
+        if (it.KeyIter.HasError()) return it.KeyIter.Error();
+        if (it.ValIter.HasError()) return it.ValIter.Error();
         return MakeError(
             LpCounter,
             NError::ErrorCode::MappingKeyNotFound,
@@ -79,10 +88,7 @@ namespace NJsonParser {
     }
 
     constexpr auto Mapping::size() const noexcept -> size_t {
-        size_t counter = 0;
-        const auto finish = end();
-        for (auto it = begin(); it != finish; ++it, ++counter);
-        return counter;
+        return std::distance(begin(), end());
     }
 
     constexpr auto Expected<Mapping>::begin() const noexcept -> Mapping::Iterator {

@@ -52,27 +52,26 @@ namespace NJsonParser {
     }
 
     constexpr auto Array::operator[](size_t idx) const noexcept -> Expected<JsonValue> { 
-        size_t counter = 0;
+        size_t i = 0;
         auto it = begin();
-        const auto finish = end();
-        for (; it != finish && !it.Iter.HasError() && counter < idx; ++it, ++counter);
+        for (; it != end(); ++it, ++i) {
+            const auto elem = *it;
+            if (i == idx) return elem;
+            if (elem.HasError()) return elem;
+        }
         if (it.Iter.HasError()) return it.Iter.Error();
-        if (it == finish) return MakeError(
+        return MakeError(
             LpCounter,
             NError::ErrorCode::ArrayIndexOutOfRange,
             NError::ArrayIndexOutOfRangeAdditionalInfo{
                 .Index = idx,
-                .ArrayLen = counter
+                .ArrayLen = i
             }
         );
-        return *it;
     }
 
     constexpr auto Array::size() const noexcept -> size_t {
-        size_t counter = 0;
-        const auto finish = end();
-        for (auto it = begin(); it != finish; ++it, ++counter);
-        return counter; 
+        return std::distance(begin(), end());
     }
 
     constexpr auto Expected<Array>::begin() const noexcept -> Array::Iterator {

@@ -15,7 +15,7 @@ namespace NJsonParser {
             : std::variant<T, NError::Error>(std::forward<Args>(args)...) {}
 
         // Common methods for (simplified)
-        // c++23 std::expected-like types:
+        // c++23 `std::expected`-like types:
 
         constexpr auto HasValue() const noexcept -> bool {
             return std::holds_alternative<T>(*this);
@@ -34,7 +34,6 @@ namespace NJsonParser {
 
         constexpr auto operator==(const ExpectedMixin<T>& other) const noexcept(
             noexcept(std::declval<T>() == std::declval<T>())
-         && noexcept(std::declval<NError::Error>() == std::declval<NError::Error>())
         ) -> bool {
             static_assert(noexcept(std::declval<NError::Error>() == std::declval<NError::Error>()));
             if (HasValue() && other.HasValue()) return Value() == other.Value();
@@ -43,15 +42,13 @@ namespace NJsonParser {
         }
         // An `operator==` for efficient comparison with instances of `T`.
         // The comparison happens without the invocation of `ExpectedMixin` constructor
-        template <class U>
-        requires std::convertible_to<U, T>
+        template <std::equality_comparable_with<T> U>
         constexpr auto operator==(const U& otherValue) const -> bool {
             return HasValue() && Value() == otherValue;
         }
         // An `operator==` for efficient comparison with instances of `NError::Error`.
         // The comparison happens without the invocation of `ExpectedMixin` constructor
-        template <class U>
-        requires std::same_as<U, NError::Error>
+        template <std::same_as<NError::Error> U>
         constexpr auto operator==(const U& otherError) const noexcept -> bool {
             return HasError() && Error() == otherError;
         }

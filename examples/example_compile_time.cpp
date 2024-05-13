@@ -5,6 +5,7 @@ using namespace NJsonParser;
 
 
 constexpr auto Example() -> void {
+    // Create a json object at compile-time from anything that is convertible to `std::string_view`:
     constexpr auto json = JsonValue{
     /* line number */
     /*      0      */  "{                                           \n"

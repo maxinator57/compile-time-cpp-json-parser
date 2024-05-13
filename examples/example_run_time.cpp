@@ -8,13 +8,15 @@ using namespace NJsonParser;
 
 
 constexpr auto Example() -> void {
-    const auto json = JsonValue{
+    // Create a json object at run-time from anything that is convertible to `std::string_view`:
+    const auto someString = std::string{
     /* line number */
     /*      0      */  "{                                           \n"
     /*      1      */  "    \"aba\": 1,                             \n"
     /*      2      */  "    \"caba\": [1, 2, \"fizz\", 4, \"buzz\"] \n"
     /*      3      */  "}                                           \n"
     };
+    const auto json = JsonValue{someString};
 
     // Try to read a value of type `Int` from json mapping by key:
     const auto aba = json["aba"].As<Int>();

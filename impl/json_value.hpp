@@ -216,7 +216,7 @@ namespace NJsonParser {
         );
         return Mapping{
             Data.substr(1, Data.size() - 2),
-            LpCounter.Copy().Process(Data[0])
+            LpCounter,
         };
     }
 

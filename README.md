@@ -1,6 +1,8 @@
 ## A fast compile- and run-time json parser written in C++20
 
+
 ### Description
+
 This is a fast and efficient json parser written in C++20 that
 - works both at compile- and run-time
 - uses only STL, doesn't have any external dependencies
@@ -10,6 +12,7 @@ This is a fast and efficient json parser written in C++20 that
 - provides access to json fields via lightweight types that are immutable and thus are thread-safe and have value semantics
 - provides a minimalistic and elegant API
 - has efficient monadic error-handling which is straightforward and gives a lot of useful information, including the line number and position of the error and is thread- and memory-safe (see **Error handling** section)
+
 
 ### Usage
 
@@ -22,6 +25,7 @@ Below are some code snippets that show how to use the parser for basic tasks:
     #include "../parser.hpp"
     using namespace NJsonParser;
 
+    // Create a json object at compile-time from anything that is convertible to `std::string_view`:
     constexpr auto json = JsonValue{
     /* line number */
     /*      0      */  "{                                           \n"
@@ -127,13 +131,15 @@ Below are some code snippets that show how to use the parser for basic tasks:
     #include "../parser.hpp"
     using namespace NJsonParser;
 
-    const auto json = JsonValue{
+    // Create a json object at run-time from anything that is convertible to `std::string_view`:
+    const auto someString = std::string{
     /* line number */
     /*      0      */  "{                                           \n"
     /*      1      */  "    \"aba\": 1,                             \n"
     /*      2      */  "    \"caba\": [1, 2, \"fizz\", 4, \"buzz\"] \n"
     /*      3      */  "}                                           \n"
     };
+    const auto json = JsonValue{someString};
 
     // Try to read a value of type `Int` from json mapping by key:
     const auto aba = json["aba"].As<Int>();
@@ -224,6 +230,7 @@ Below are some code snippets that show how to use the parser for basic tasks:
     assert((strings == std::vector<String>{"fizz", "buzz"}));
   ```
 
+
 ### Tests
 
 The tests are located in the `tests` directory. Each test is written in its own `.cpp` file with an appropriate name. The source code of the tests includes comments that help to understand what is going on.
@@ -243,7 +250,53 @@ To run the tests after building:
 
 ### Code structure
 
-The implementation of the parser is split into several header files in `impl` directory. These header files are as follows:
+The header file `parser.hpp` simply includes all the needed implementation files located in the `impl` directory. The logic is split between these header files in the following way:
+
 | Header file | Contents |
-| :---------: | :------: |
-| `api.hpp`   | Definitions of all types that represent json data (i.e. `int`, `double`, `string`, `array`, `mapping`) in the library code |
+| :---------- | :------- |
+| `impl/api.hpp`   | Declarations of all classes that represent json data (`Int`, `Double`, `String`, `Array`, `Mapping` and `JsonValue`) and their methods |
+| `impl/array.hpp` | Implementation of the `Array` and `Expected<Array>` class methods and definition of the `Array::Iterator` class |
+| `impl/data_holder.hpp` | Definition of the `DataHolderMixin` class |
+| `impl/error.hpp` | Definitions of all classes and functions related to error handling |
+| `impl/expected.hpp` | Definitions of all the `Expected<T>` classes and the `ExpectedMixin<T>` class |
+| `impl/iterator.hpp` | Definition of the `GenericSerializedSequenceIterator` class |
+| `impl/json_value.hpp` | Implementation of the `JsonValue` class methods |
+| `impl/line_position_counter.hpp` | Definition of the `LinePositionCounter` class |
+| `impl/mapping.hpp` | Implementation of the `Mapping` and `Expected<Mapping>` class methods and definition of the `Mapping::Iterator` class |
+| `impl/utils.hpp` | Definitions of some utility functions needed to iterate over string symbols in specific ways |
+
+The tests are located in the `tests` directory, and the examples from this documentation -- in the `examples` directory.
+
+
+### Error handling
+
+All json access operations return instances of `Expected<T>` classes instead of instances of `T`. The class template `Expected<T>` is essentially a `std::variant<T, NError::Error>` with some additional methods. All specializations of the `Expected<T>` class template provide the following methods:
+
+| Method | Return type | Description |
+| :----- | :---------- | :---------- |
+| `HasValue()` | `bool` | Returns `true` if the `std::variant` contains a value, `false` if it contains an error. |
+| `HasError()` | `bool` | Same effect as `!HasValue()`. |
+| `Value()` | `const T&` | Returns a const reference to the value of type `T` contained in the `std::variant`. If the `std::variant` contains an error, throws `std::bad_variant_access`. |
+| `Error()` | `const NError::Error&` | Returns a const reference to the value of type `NError::Error` contained in the `std::variant`. If the `std::variant` contains a value instead of an error, throws `std::bad_variant_access`. |
+| `operator==(const Expected<T>&)` if `T` supports `operator==` | `bool` | Equality comparison |
+| `template <class U> operator==(const U&)` if `T` supports `operator==(const U&)` | `bool` | Equality comparison |
+| `operator==(const NError::Error&)` | `bool` | Equality comparison |
+
+The comparison operators are needed to facilitate error handling and setting up the control flow by allowing to explicitly compare instances of `Expected<T>` to `T` and `NError::Error` objects.
+
+Specializations of `Expected<T>` for when `T` is one of the json containers (`Array`, `Mapping`, `JsonValue`) provide specific methods that mirror the methods specific to the corresponding container. The following three tables list the methods specific to the `Expected` class template specializations `Expected<Array>`, `Expected<Mapping>` and `Expected<JsonValue>` respectively.
+
+Methods specific to `Expected<Array>`:
+
+| Method | Return type | Description |
+| :----- | :---------- | :---------- |
+| `size()` | `Expected<size_t>` | Returns an instance of `Expected<size_t>` containing the size of the underlying array if this instance of `Expected<Array>` contains an array; otherwise, returns an `Expected<size_t>` holding the same error as this instance of `Expected<Array>`. |
+| `begin()` | `Array::Iterator` | If this instance of `Expected<Array>` contains an array, returns an iterator pointing at the start of this array. Otherwise, returns the same iterator as the iterator returned by the invocation of `end()` on this instance of `Expected<Array>`. |
+| `end()` | `Array::Iterator` | If this instance of `Expected<Array>` contains an array, returns an iterator containing a sentinel for the element "after the end of the array". Otherwise, returns the same iterator as the iterator returned by the invocation of `begin()` on this instance of `Expected<Array>`. |
+
+The `begin()` and `end()` methods on `Expected<Array>` allow to write code like
+```cpp
+const Expected<Array> maybeArr = ...;
+for (const auto elem : maybeArr) { ... }
+```
+If `maybeArr` contains an error, the `for` loop would simply do zero iterations.
