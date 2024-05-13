@@ -42,6 +42,7 @@ constexpr auto Example() -> void {
     static_assert(caba.size() == 5);
 
     // The same can be done with strings:
+    // `json["caba"][2]` is equalivalent to `json.As<Mapping>()["caba"].AsArray()[2]`
     constexpr auto fizz = json["caba"][2].As<String>();
     static_assert(std::same_as<decltype(fizz), const Expected<String>>);
     static_assert(fizz.HasValue());

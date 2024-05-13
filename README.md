@@ -52,7 +52,7 @@ Below are some code snippets that show how to use the parser for basic tasks:
     // the value from an instance of `Expected`:
     static_assert(aba == 1);
 
-    // Trey to read an array from json mapping by key:
+    // Try to read an array from json mapping by key:
     constexpr auto caba = json["caba"].As<Array>();
     // Similarly to the first example, the type of `caba` is `Expected<Array>`
     static_assert(std::same_as<decltype(caba), const Expected<Array>>);
@@ -62,6 +62,7 @@ Below are some code snippets that show how to use the parser for basic tasks:
     static_assert(caba.size() == 5);
 
     // The same can be done with strings:
+    // `json["caba"][2]` is equalivalent to `json.As<Mapping>()["caba"].AsArray()[2]`
     constexpr auto fizz = json["caba"][2].As<String>();
     static_assert(std::same_as<decltype(fizz), const Expected<String>>);
     static_assert(fizz.HasValue());
