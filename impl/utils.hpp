@@ -10,7 +10,7 @@
 
 
 namespace NJsonParser::NUtils {
-    constexpr auto kSpaces = std::string_view{" \t\n"};
+    constexpr inline auto kSpaces = std::string_view{" \t\n"};
     // Have to write an implementation of `IsSpace` by hand, because
     // in c++20 and even 23 `std::isspace` is not constexpr
     constexpr auto IsSpace(char ch) -> bool {
